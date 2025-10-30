@@ -15,6 +15,7 @@ class Perceptron:
         self.plot = plot
         self.i = 0
         if plot:
+            plt.ion()
             self.fig = plt.figure(1)
             self.ax = self.fig.add_subplot(projection='3d')
             self.ax.scatter(self.X_train[1, self.d==1],
@@ -40,11 +41,13 @@ class Perceptron:
             self.ax.set_zlabel("Resultado")
             self.ax.set_title("Gráfico 3D do conjunto de dados")
             
-            self.draw_line()
+            #self.draw_line()
         
-    def draw_line(self, alpha=0.3, color='k'):
+        
+    def draw_line(self,color,alpha):
+        if self.surface:
+            self.surface.remove()
         # cria grid 2D
-
         x1 = np.linspace(self.X_train[1].min()-1, self.X_train[1].max()+1, 10)
         x2 = np.linspace(self.X_train[2].min()-1, self.X_train[2].max()+1, 10)
         X1, X2 = np.meshgrid(x1, x2)
@@ -52,17 +55,17 @@ class Perceptron:
         print(self.i)
         # plano 3D do Perceptron
         # Z = np.zeros_like(X1)
-        Z = -(self.w[0] + self.w[1]*X1 + self.w[2]*X2)
-        
+        Z = (self.w[0] + self.w[1]*X1 + self.w[2]*X2)# tem o menos no 
+        self.ax.plot_surface(X1, X2, Z, color=color, alpha=alpha)
         # desenha no subplot 3D
-        # self.ax.plot_surface(X1, X2, Z, color="b", alpha=alpha)  
+        self.ax.plot_surface(X1, X2, Z, color=color, alpha=alpha)  
         
         
     def activation_function(self, u):
         return 1 if u>=0 else -1
     
     def fit(self):
-        epochs = 0
+        epochs = 0 #precisa?
         error = True
         while error:
             error = False
@@ -72,15 +75,15 @@ class Perceptron:
                 y_k = self.activation_function(u_k)
                 d_k = self.d[k]
                 e_k = d_k - y_k
+                self.w = self.w + self.lr*e_k*x_k
                 if e_k!=0:
                     error = True
-                self.w = self.w + self.lr*e_k*x_k
-            
+            epochs+=1 #precisa?   
             plt.pause(.4)
-            self.draw_line(color='r',alpha=.01)
-            epochs+=1
+            self.draw_line(color='b',alpha=.1)
+            
+            
         plt.pause(.4)
-        self.draw_line(c='g',alpha=.5,lw=4)
-        self.ax.plot_surface(X1, X2, Z, color="b", alpha=alpha)
+        self.draw_line(color='g',alpha=.5,lw=4)
         print(12)
         plt.show()
