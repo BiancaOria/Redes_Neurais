@@ -45,3 +45,14 @@ class Avaliador:
         f1_score = 2 * (precisao * sensibilidade) / denominador_f1 if denominador_f1 > 0 else 0
         
         return acuracia, sensibilidade, especificidade, precisao, f1_score
+    
+    @staticmethod 
+    def get_pior(metric_name,resultados):
+        valores = [r[metric_name] for r in resultados]
+        idx_worst = np.argmin(valores)
+        return resultados[idx_worst]  
+    def get_melhor(metric_name,resultados):
+        valores = [r[metric_name] for r in resultados]
+        idx_best = np.argmax(valores)
+        
+        return resultados[idx_best]  

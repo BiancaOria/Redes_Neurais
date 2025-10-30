@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from Perceptron import Perceptron
 from Avaliador import Avaliador
+import seaborn as sns
+from Matriz_Confusao import Matriz_Confusao
 
 
 
@@ -47,7 +49,7 @@ metricas_sensibilidade = []
 metricas_especificidade = []
 metricas_precisao = []
 metricas_f1_score = []
-
+resultados = []
 R = 5 #ajustar
 
 print(f"Iniciando simulação de Monte Carlo com {R} rodadas...")
@@ -79,14 +81,69 @@ for r in range(R):
     metricas_especificidade.append(spec)
     metricas_precisao.append(prec)
     metricas_f1_score.append(f1)
+    resultados.append({
+        "acc": acc, "sens": sens, "spec": spec, "prec": prec, "f1": f1,
+        "y_true": y_teste, "y_pred": y_pred,
+        "errors": ps.errors_per_epoch
+    })
     
     if (r + 1) % 50 == 0:
         print(f"Rodada {r + 1}/{R} concluída.")
+        
+# ----- MATRIZ DE CONFUSÃO -----
+metricas = ["acc", "sens", "spec", "prec", "f1"]
+labels_plot = ['Classe 1', 'Classe -1']
 
+for metrica in metricas:
+    
+    melhor= Avaliador.get_melhor(metrica,resultados)
+    pior = Avaliador.get_pior(metrica,resultados)
+    
+    mc_melhor = Matriz_Confusao.conf_matriz(melhor["y_true"], melhor["y_pred"])
+    mc_pior = Matriz_Confusao.confusion_matrix_manual(pior["y_true"], pior["y_pred"])
+    
+    # 3. Criar a figura com 2 subplots (1 linha, 2 colunas)
+    fig_cm, (ax_cm_melhor, ax_cm_pior) = plt.subplots(1, 2, figsize=(14, 6))
+    
+    # 4. Plotar Matriz "Melhor" (Esquerda)
+    sns.heatmap(mc_melhor, annot=True, fmt='d', cmap='Greens', ax=ax_cm_melhor, cbar=False,
+                xticklabels=labels_plot, yticklabels=labels_plot)
+    ax_cm_melhor.set_title(f'Melhor {metrica.upper()} - Matriz de Confusão')
+    ax_cm_melhor.set_xlabel('Predito (Previsto)')
+    ax_cm_melhor.set_ylabel('Verdadeiro (Real)')
+    ax_cm_melhor.set_yticklabels(ax_cm_melhor.get_yticklabels(), rotation=0)
+
+    # 5. Plotar Matriz "Pior" (Direita)
+    sns.heatmap(mc_pior, annot=True, fmt='d', cmap='Reds', ax=ax_cm_pior, cbar=False,
+                xticklabels=labels_plot, yticklabels=labels_plot)
+    ax_cm_pior.set_title(f'Pior {metrica.upper()} - Matriz de Confusão')
+    ax_cm_pior.set_xlabel('Predito (Previsto)')
+    ax_cm_pior.set_ylabel('Verdadeiro (Real)')
+    ax_cm_pior.set_yticklabels(ax_cm_pior.get_yticklabels(), rotation=0)
+    
+    plt.tight_layout()
+    plt.show() # Mostra a figura das matrizes
+    
+    # ----- CURVA DE APRENDIZADO -----
+    plt.figure(figsize=(6, 4))
+    
+    # Garante que 'errors' não é None
+    errors_melhor = melhor["errors"] if melhor["errors"] is not None else [0]
+    errors_pior = pior["errors"] if pior["errors"] is not None else [0]
+        
+    plt.plot(errors_melhor, label=f"Melhor {metrica.upper()}", color='green')
+    plt.plot(errors_pior, label=f"Pior {metrica.upper()}", color='red')
+    plt.xlabel("Época")
+    plt.ylabel("Erros por época")
+    plt.title(f"Curvas de Aprendizado - {metrica.upper()}")
+    plt.legend()
+    plt.grid(True)
+    plt.show() # Mostra a figura das curvas de aprendizado
+
+# --- Finalização (sem alterações) ---
 plt.show()
-plt.show(block=True)        
+plt.show(block=True) 
 print("\nSimulação concluída.")
-
 Avaliador.print_stat("Acurácia", metricas_acuracia)
 Avaliador.print_stat("Sensibilidade", metricas_sensibilidade)
 Avaliador.print_stat("Especificidade", metricas_especificidade)

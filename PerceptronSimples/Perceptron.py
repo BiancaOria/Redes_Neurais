@@ -15,6 +15,7 @@ class Perceptron:
         self.w = np.random.random_sample((self.p+1,1))-.5 # arbritario ?        
         self.plot = plot
         self.i = 0
+        self.errors_per_epoch = [] 
         if plot:
             # plt.ion() # ?
             self.fig = plt.figure(2)
@@ -50,7 +51,8 @@ class Perceptron:
         return 1 if u>=0 else -1
     
     def fit(self):
-        epochs = 0 #precisa?
+        epochs=0
+        errors_epoch = 0 #precisa?
         error = True
         while error and epochs < self.max_epoch:
             error = False
@@ -61,8 +63,10 @@ class Perceptron:
                 d_k = self.d[k]
                 e_k = d_k - y_k
                 self.w = self.w + self.lr*e_k*x_k
-                if e_k!=0:
+                if e_k != 0:
                     error = True
+                    errors_epoch += 1
+            self.errors_per_epoch.append(errors_epoch)
             epochs+=1 #precisa?   
             # plt.pause(.4)
             # self.draw_line(color='b',alpha=.01)
