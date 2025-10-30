@@ -2,11 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class Perceptron:
-    def __init__(self,X_train,y_train,learning_rate=1e-3,plot=True):
+    def __init__(self,X_train,y_train,learning_rate=1e-3,max_epoch=500,plot=True):
         self.p, self.N = X_train.shape
         self.X_train = np.vstack((
             -np.ones((1,self.N)), X_train
         ))
+        self.max_epoch = max_epoch
         self.d = np.array(y_train).flatten()
         self.COLORS = ['#f6cfff', '#b8e6fe', '#c4b4ff', '#fccee8', '#96f7e4', '#a4f4cf', '#fef3c6', '#ffccd3']
         self.lr = learning_rate
@@ -63,7 +64,7 @@ class Perceptron:
     def fit(self):
         epochs = 0 #precisa?
         error = True
-        while error and epochs < 500:
+        while error and epochs < self.max_epoch:
             error = False
             for k in range(self.N):
                 x_k = self.X_train[:,k].reshape(self.p+1,1)
