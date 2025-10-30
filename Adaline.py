@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class ADALINE:
-    def __init__(self,X_train,y_train,learning_rate=1e-2,max_epoch=10000,tol=1e-5,plot=True):
+    def __init__(self,X_train,y_train,learning_rate=1e-2,max_epoch=500,tol=1e-5,plot=True):
         self.p, self.N = X_train.shape
         self.X_train = np.vstack((
             -np.ones((1,self.N)), X_train
@@ -44,18 +44,18 @@ class ADALINE:
             
             # self.draw_line()
         
-    def draw_line(self,c,alpha=1,lw=2):
+    def draw_line(self,c,alpha=1):
         
         x1 = np.linspace(self.X_train[1].min()-1, self.X_train[1].max()+1, 10)
         x2 = np.linspace(self.X_train[2].min()-1, self.X_train[2].max()+1, 10)
         X1, X2 = np.meshgrid(x1, x2)
         
         # plano 3D
-        Z = (self.w[0] + self.w[1]*X1 + self.w[2]*X2)
+        Z = self.w[0] * + self.w[1]*X1 + self.w[2]*X2
         
         # desenha no subplot 3D
         self.ax.plot_surface(X1, X2, Z, color=c, alpha=alpha)
-        plt.show()    
+        # plt.show()    
         
     # def activation_function(self, u):
     #     return 1 if u>=0 else -1
@@ -73,7 +73,7 @@ class ADALINE:
         EQM1 = 0
         EQM2 = 1
         hist_eqm = []
-        while epochs < self.max_epoch and abs(EQM1 - EQM2)>self.tol:
+        while epochs < self.max_epoch :
             EQM1 = self.EQM()
             hist_eqm.append(EQM1)
             for k in range(self.N):
@@ -82,14 +82,14 @@ class ADALINE:
                 d_k = self.d[k]#saida desejada
                 e_k = d_k-u_k #erro quadratico
                 self.w = self.w + self.lr*e_k*x_k #lr taxa de aprendizagem
+            print(epochs)
             epochs+=1
             EQM2 = self.EQM() #até aqui ok, conferigo pelo pseudo codigo
             # plt.pause(.1)
-            self.draw_line(c='b',alpha=.05)
-            print(epochs)
+        self.draw_line(c='b',alpha=.05)
         hist_eqm.append(EQM2)
-        plt.pause(.1)
-        self.draw_line(c='g',alpha=0.05,lw=4)
+        # plt.pause(.1)
+        self.draw_line(c='g',alpha=0.5)
         plt.show(block=True)
         # plt.figure(2)
         # plt.plot(hist_eqm)
