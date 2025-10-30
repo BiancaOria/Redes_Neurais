@@ -45,18 +45,14 @@ class Perceptron:
         
         
     def draw_line(self,color,alpha):
-        if self.surface:
-            self.surface.remove()
+        
         # cria grid 2D
         x1 = np.linspace(self.X_train[1].min()-1, self.X_train[1].max()+1, 10)
         x2 = np.linspace(self.X_train[2].min()-1, self.X_train[2].max()+1, 10)
         X1, X2 = np.meshgrid(x1, x2)
-        self.i = self.i + 1
-        print(self.i)
         # plano 3D do Perceptron
         # Z = np.zeros_like(X1)
-        Z = (self.w[0] + self.w[1]*X1 + self.w[2]*X2)# tem o menos no 
-        self.ax.plot_surface(X1, X2, Z, color=color, alpha=alpha)
+        Z = (self.w[0] + self.w[1]*X1 + self.w[2]*X2)# tem o menos no w0 ?
         # desenha no subplot 3D
         self.ax.plot_surface(X1, X2, Z, color=color, alpha=alpha)  
         
@@ -67,7 +63,7 @@ class Perceptron:
     def fit(self):
         epochs = 0 #precisa?
         error = True
-        while error:
+        while error and epochs < 500:
             error = False
             for k in range(self.N):
                 x_k = self.X_train[:,k].reshape(self.p+1,1)
@@ -79,11 +75,11 @@ class Perceptron:
                 if e_k!=0:
                     error = True
             epochs+=1 #precisa?   
-            plt.pause(.4)
-            self.draw_line(color='b',alpha=.1)
+            # plt.pause(.4)
+            # self.draw_line(color='b',alpha=.01)
             
             
-        plt.pause(.4)
-        self.draw_line(color='g',alpha=.5,lw=4)
-        print(12)
+        # plt.pause(.4)
+        self.draw_line(color='y',alpha=.5)
         plt.show()
+        plt.show(block=True)
