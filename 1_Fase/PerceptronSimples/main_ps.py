@@ -1,10 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from Perceptron import Perceptron
-from Avaliador import Avaliador
 import seaborn as sns
-from Matriz_Confusao import Matriz_Confusao
+import sys
+import os
+script_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(script_dir, '..'))
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
 
+from Avaliador import Avaliador
+from Matriz_Confusao import Matriz_Confusao
 
 
 data = np.loadtxt("../spiral_d.csv", delimiter=',')

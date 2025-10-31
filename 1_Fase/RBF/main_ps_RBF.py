@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from Adaline import ADALINE
+# ### MUDANÇA 1: Importar a classe RBF ###
+from RBF import RBF 
 import seaborn as sns
 import sys
 import os
@@ -27,12 +28,12 @@ XT=X.T
 fig = plt.figure(1)
 ax = fig.add_subplot()
 ax.scatter(XT[0, (d==1)],
-                XT[1, (d==1)],
-                c='r', marker='s', s=120, edgecolor='k')
+           XT[1, (d==1)],
+           c='r', marker='s', s=120, edgecolor='k')
 
 ax.scatter(XT[0, (d==-1)],
-                XT[1, (d==-1)],
-                c='b', marker='o', s=120, edgecolor='k')
+           XT[1, (d==-1)],
+           c='b', marker='o', s=120, edgecolor='k')
 margin = 1  # margem extra
 x_min, x_max = XT[0].min() - margin, XT[0].max() + margin
 y_min, y_max = XT[1].min() - margin, XT[1].max() + margin
@@ -45,8 +46,7 @@ ax.set_ylim(y_min, y_max)
 ax.set_xlabel("Variável 1")
 ax.set_ylabel("Variável 2")
 
-ax.set_title("Visualização Inicial dos Dados")
-# ax.legend()
+ax.set_title("Visualização Inicial dos Dados (Espiral)")
 ax.grid(True)
 
 #monte carlo
@@ -57,7 +57,7 @@ metricas_especificidade = []
 metricas_precisao = []
 metricas_f1_score = []
 resultados = []
-R = 1 #ajustar
+R = 1 # (Mantenha 1 para um teste rápido, aumente para um experimento real)
 
 print(f"Iniciando simulação de Monte Carlo com {R} rodadas...")
 for r in range(R):
@@ -76,7 +76,16 @@ for r in range(R):
     y_teste = yr[split_idx:, :]
     
     
-    ps = ADALINE(X_treino.T, y_treino, plot=True, max_epoch=3, learning_rate=0.01)
+    # ### MUDANÇA 2: Instanciar a RBF com os novos hiperparâmetros ###
+    ps = RBF(X_treino.T, y_treino, 
+             num_centers=50,
+             sigma=1.0,
+             learning_rate=0.005,
+             max_epoch=200)
+    
+    # (A classe RBF que escrevi não tem a função plot=True, 
+    #  pois a fronteira de decisão não é uma linha, então removemos isso)
+    
     ps.fit()
     
     
@@ -93,7 +102,7 @@ for r in range(R):
     resultados.append({
         "acc": acc, "sens": sens, "spec": spec, "prec": prec, "f1": f1,
         "y_true": y_teste.flatten(), "y_pred": y_pred.flatten(),
-        "errors": ps.errors_per_epoch
+        "errors": ps.errors_per_epoch  # ### MUDANÇA 3: Isso vai funcionar! ###
     })
     
     if (r + 1) % 50 == 0:
@@ -102,6 +111,10 @@ for r in range(R):
 # ----- MATRIZ DE CONFUSÃO -----
 metricas = ["acc", "sens", "spec", "prec", "f1"]
 labels_plot = ['Classe 1', 'Classe -1']
+
+# O resto do seu código de plotagem funcionará perfeitamente.
+# O `Avaliador` e a `Matriz_Confusao` não mudam.
+# A `Curva de Aprendizado` (errors_per_epoch) também funcionará.
 
 for metrica in metricas:
     
@@ -147,6 +160,8 @@ for metrica in metricas:
     axes[0].set_ylabel("EQM (Erro Quadrático Médio)")
     axes[0].set_xlabel("Época")
     axes[0].grid(True)
+    # Adicionando escala de log para ver melhor a convergência
+    axes[0].set_yscale('log') 
 
     # --- Subgráfico 2: Pior ---
     axes[1].plot(errors_pior, color='red')
@@ -154,6 +169,8 @@ for metrica in metricas:
     axes[1].set_ylabel("EQM (Erro Quadrático Médio)")
     axes[1].set_xlabel("Época")
     axes[1].grid(True)
+    # Adicionando escala de log para ver melhor a convergência
+    axes[1].set_yscale('log')
 
     # Ajustes finais
     plt.suptitle(f"Curvas de Aprendizado - {metrica.upper()}", fontsize=14, fontweight='bold')
