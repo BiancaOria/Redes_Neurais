@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class Perceptron:
-    def __init__(self,X_train,y_train,learning_rate=1e-3,max_epoch=500,plot=True):
+    def __init__(self,X_train,y_train,learning_rate=1e-3,max_epoch=10000,plot=True):
         self.p, self.N = X_train.shape
         self.X_train = np.vstack((
             -np.ones((1,self.N)), X_train
@@ -56,6 +56,7 @@ class Perceptron:
         error = True
         while error and epochs < self.max_epoch:
             error = False
+            errors_epoch = 0
             for k in range(self.N):
                 x_k = self.X_train[:,k].reshape(self.p+1,1)
                 u_k = (self.w.T@x_k)[0,0]

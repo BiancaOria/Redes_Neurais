@@ -50,7 +50,7 @@ metricas_especificidade = []
 metricas_precisao = []
 metricas_f1_score = []
 resultados = []
-R = 5 #ajustar
+R = 1 #ajustar
 
 print(f"Iniciando simulação de Monte Carlo com {R} rodadas...")
 for r in range(R):
@@ -69,8 +69,10 @@ for r in range(R):
     y_teste = yr[split_idx:, :]
     
     
-    ps = Perceptron(X_treino.T, y_treino, plot=True, max_epoch=200, learning_rate=0.01)
+    ps = Perceptron(X_treino.T, y_treino, plot=True, max_epoch=1000, learning_rate=0.01)
     ps.fit()
+    
+    
     
     y_pred = ps.predict(X_teste.T)
     
@@ -83,7 +85,7 @@ for r in range(R):
     metricas_f1_score.append(f1)
     resultados.append({
         "acc": acc, "sens": sens, "spec": spec, "prec": prec, "f1": f1,
-        "y_true": y_teste, "y_pred": y_pred,
+        "y_true": y_teste.flatten(), "y_pred": y_pred.flatten(),
         "errors": ps.errors_per_epoch
     })
     
@@ -100,7 +102,7 @@ for metrica in metricas:
     pior = Avaliador.get_pior(metrica,resultados)
     
     mc_melhor = Matriz_Confusao.conf_matriz(melhor["y_true"], melhor["y_pred"])
-    mc_pior = Matriz_Confusao.confusion_matrix_manual(pior["y_true"], pior["y_pred"])
+    mc_pior = Matriz_Confusao.conf_matriz(pior["y_true"], pior["y_pred"])
     
     # 3. Criar a figura com 2 subplots (1 linha, 2 colunas)
     fig_cm, (ax_cm_melhor, ax_cm_pior) = plt.subplots(1, 2, figsize=(14, 6))
@@ -125,20 +127,31 @@ for metrica in metricas:
     plt.show() # Mostra a figura das matrizes
     
     # ----- CURVA DE APRENDIZADO -----
-    plt.figure(figsize=(6, 4))
     
     # Garante que 'errors' não é None
     errors_melhor = melhor["errors"] if melhor["errors"] is not None else [0]
     errors_pior = pior["errors"] if pior["errors"] is not None else [0]
-        
-    plt.plot(errors_melhor, label=f"Melhor {metrica.upper()}", color='green')
-    plt.plot(errors_pior, label=f"Pior {metrica.upper()}", color='red')
-    plt.xlabel("Época")
-    plt.ylabel("Erros por época")
-    plt.title(f"Curvas de Aprendizado - {metrica.upper()}")
-    plt.legend()
-    plt.grid(True)
-    plt.show() # Mostra a figura das curvas de aprendizado
+    # --- CURVAS DE APRENDIZADO (Melhor x Pior) ---
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))  # 1 linha, 2 colunas
+
+    # --- Subgráfico 1: Melhor ---
+    axes[0].plot(errors_melhor, color='green')
+    axes[0].set_title(f"Melhor {metrica.upper()}")
+    axes[0].set_xlabel("Época")
+    axes[0].set_ylabel("Erros por época")
+    axes[0].grid(True)
+
+    # --- Subgráfico 2: Pior ---
+    axes[1].plot(errors_pior, color='red')
+    axes[1].set_title(f"Pior {metrica.upper()}")
+    axes[1].set_xlabel("Época")
+    axes[1].set_ylabel("Erros por época")
+    axes[1].grid(True)
+
+    # Ajustes finais
+    plt.suptitle(f"Curvas de Aprendizado - {metrica.upper()}", fontsize=14, fontweight='bold')
+    plt.tight_layout(rect=[0, 0, 1, 0.95])  # Deixa espaço para o título
+    plt.show()
 
 # --- Finalização (sem alterações) ---
 plt.show()
