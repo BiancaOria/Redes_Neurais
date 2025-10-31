@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-# ### MUDANÇA 1: Importar a classe RBF ###
 from RBF import RBF 
 import seaborn as sns
 import sys
@@ -57,7 +56,7 @@ metricas_especificidade = []
 metricas_precisao = []
 metricas_f1_score = []
 resultados = []
-R = 1 # (Mantenha 1 para um teste rápido, aumente para um experimento real)
+R = 1 
 
 print(f"Iniciando simulação de Monte Carlo com {R} rodadas...")
 for r in range(R):
@@ -67,7 +66,7 @@ for r in range(R):
     yr = y[idx, :]
     
 
-    # Particionamento do conjunto de dados (80% treino, 20% teste)
+    
     split_idx = int(N * 0.8)
     X_treino = Xr[:split_idx, :]
     y_treino = yr[:split_idx, :]
@@ -76,15 +75,13 @@ for r in range(R):
     y_teste = yr[split_idx:, :]
     
     
-    # ### MUDANÇA 2: Instanciar a RBF com os novos hiperparâmetros ###
+    
     ps = RBF(X_treino.T, y_treino, 
              num_centers=50,
              sigma=1.0,
              learning_rate=0.005,
              max_epoch=200)
     
-    # (A classe RBF que escrevi não tem a função plot=True, 
-    #  pois a fronteira de decisão não é uma linha, então removemos isso)
     
     ps.fit()
     
@@ -102,7 +99,7 @@ for r in range(R):
     resultados.append({
         "acc": acc, "sens": sens, "spec": spec, "prec": prec, "f1": f1,
         "y_true": y_teste.flatten(), "y_pred": y_pred.flatten(),
-        "errors": ps.errors_per_epoch  # ### MUDANÇA 3: Isso vai funcionar! ###
+        "errors": ps.errors_per_epoch 
     })
     
     if (r + 1) % 50 == 0:
@@ -111,10 +108,6 @@ for r in range(R):
 # ----- MATRIZ DE CONFUSÃO -----
 metricas = ["acc", "sens", "spec", "prec", "f1"]
 labels_plot = ['Classe 1', 'Classe -1']
-
-# O resto do seu código de plotagem funcionará perfeitamente.
-# O `Avaliador` e a `Matriz_Confusao` não mudam.
-# A `Curva de Aprendizado` (errors_per_epoch) também funcionará.
 
 for metrica in metricas:
     
@@ -144,15 +137,13 @@ for metrica in metricas:
     ax_cm_pior.set_yticklabels(ax_cm_pior.get_yticklabels(), rotation=0)
     
     plt.tight_layout()
-    plt.show() # Mostra a figura das matrizes
+    plt.show() 
     
     # ----- CURVA DE APRENDIZADO -----
-    
-    # Garante que 'errors' não é None
+
     errors_melhor = melhor["errors"] if melhor["errors"] is not None else [0]
     errors_pior = pior["errors"] if pior["errors"] is not None else [0]
-    # --- CURVAS DE APRENDIZADO (Melhor x Pior) ---
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4))  # 1 linha, 2 colunas
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))  
 
     # --- Subgráfico 1: Melhor ---
     axes[0].plot(errors_melhor, color='green')
@@ -160,7 +151,6 @@ for metrica in metricas:
     axes[0].set_ylabel("EQM (Erro Quadrático Médio)")
     axes[0].set_xlabel("Época")
     axes[0].grid(True)
-    # Adicionando escala de log para ver melhor a convergência
     axes[0].set_yscale('log') 
 
     # --- Subgráfico 2: Pior ---
@@ -169,15 +159,13 @@ for metrica in metricas:
     axes[1].set_ylabel("EQM (Erro Quadrático Médio)")
     axes[1].set_xlabel("Época")
     axes[1].grid(True)
-    # Adicionando escala de log para ver melhor a convergência
     axes[1].set_yscale('log')
 
     # Ajustes finais
     plt.suptitle(f"Curvas de Aprendizado - {metrica.upper()}", fontsize=14, fontweight='bold')
-    plt.tight_layout(rect=[0, 0, 1, 0.95])  # Deixa espaço para o título
+    plt.tight_layout(rect=[0, 0, 1, 0.95]) 
     plt.show()
 
-# --- Finalização (sem alterações) ---
 plt.show()
 plt.show(block=True) 
 print("\nSimulação concluída.")
