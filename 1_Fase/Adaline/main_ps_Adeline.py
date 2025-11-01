@@ -73,15 +73,29 @@ for r in range(R):
     y_treino = yr[:split_idx, :]
     
     X_teste = Xr[split_idx:, :] 
-    y_teste = yr[split_idx:, :]
+    y_teste = yr[split_idx:,:]
+    
+    # NORMALIZAÇÃO DOS DADOS [-1, 1] 
+    min_treino = X_treino.min(axis=0)
+    max_treino = X_treino.max(axis=0)
+    
+    denominador = (max_treino - min_treino) + 1e-8
+    
+    # x_norm = 2 * (x - min) / (max - min) - 1 ) 
+    X_treino_norm = 2 * (X_treino - min_treino) / denominador - 1
+    
+    # Normalizar o X_teste com base no que foi obtido no treino
+    X_teste_norm = 2 * (X_teste - min_treino) / denominador - 1
+ 
+    # FIM DA NORMALIZAÇÃO
     
     
-    ps = ADALINE(X_treino.T, y_treino, plot=True, max_epoch=3, learning_rate=0.01)
+    ps = ADALINE(X_treino_norm.T, y_treino, plot=True, max_epoch=3, learning_rate=0.01)
     ps.fit()
     
     
     
-    y_pred = ps.predict(X_teste.T)
+    y_pred = ps.predict(X_teste_norm.T)
     
     acc, sens, spec, prec, f1 = Avaliador.calcular_metricas(y_teste, y_pred)
     

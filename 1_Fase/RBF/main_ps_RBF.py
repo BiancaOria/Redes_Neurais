@@ -33,7 +33,7 @@ ax.scatter(XT[0, (d==1)],
 ax.scatter(XT[0, (d==-1)],
            XT[1, (d==-1)],
            c='b', marker='o', s=120, edgecolor='k')
-margin = 1  # margem extra
+margin = 1 
 x_min, x_max = XT[0].min() - margin, XT[0].max() + margin
 y_min, y_max = XT[1].min() - margin, XT[1].max() + margin
 
@@ -66,7 +66,7 @@ for r in range(R):
     yr = y[idx, :]
     
 
-    
+    # Particionamento do conjunto de dados (80% treino, 20% teste)
     split_idx = int(N * 0.8)
     X_treino = Xr[:split_idx, :]
     y_treino = yr[:split_idx, :]
@@ -75,19 +75,33 @@ for r in range(R):
     y_teste = yr[split_idx:, :]
     
     
+    # NORMALIZAÇÃO DOS DADOS [-1, 1] 
+    min_treino = X_treino.min(axis=0)
+    max_treino = X_treino.max(axis=0)
     
-    ps = RBF(X_treino.T, y_treino, 
+    denominador = (max_treino - min_treino) + 1e-8
+    
+    # x_norm = 2 * (x - min) / (max - min) - 1 ) 
+    X_treino_norm = 2 * (X_treino - min_treino) / denominador - 1
+    
+    # Normalizar o X_teste com base no que foi obtido no treino
+    X_teste_norm = 2 * (X_teste - min_treino) / denominador - 1
+ 
+    # FIM DA NORMALIZAÇÃO
+    
+    
+    # Agora, passamos os dados NORMALIZADOS para a RBF
+    ps = RBF(X_treino_norm.T, y_treino, 
              num_centers=50,
              sigma=1.0,
              learning_rate=0.005,
              max_epoch=200)
     
-    
     ps.fit()
     
     
-    
-    y_pred = ps.predict(X_teste.T)
+    # Usamos os dados de teste NORMALIZADOS para prever
+    y_pred = ps.predict(X_teste_norm.T)
     
     acc, sens, spec, prec, f1 = Avaliador.calcular_metricas(y_teste, y_pred)
     
@@ -99,7 +113,7 @@ for r in range(R):
     resultados.append({
         "acc": acc, "sens": sens, "spec": spec, "prec": prec, "f1": f1,
         "y_true": y_teste.flatten(), "y_pred": y_pred.flatten(),
-        "errors": ps.errors_per_epoch 
+        "errors": ps.errors_per_epoch
     })
     
     if (r + 1) % 50 == 0:
@@ -117,10 +131,8 @@ for metrica in metricas:
     mc_melhor = Matriz_Confusao.conf_matriz(melhor["y_true"], melhor["y_pred"])
     mc_pior = Matriz_Confusao.conf_matriz(pior["y_true"], pior["y_pred"])
     
-    # 3. Criar a figura com 2 subplots (1 linha, 2 colunas)
     fig_cm, (ax_cm_melhor, ax_cm_pior) = plt.subplots(1, 2, figsize=(14, 6))
     
-    # 4. Plotar Matriz "Melhor" (Esquerda)
     sns.heatmap(mc_melhor, annot=True, fmt='d', cmap='Greens', ax=ax_cm_melhor, cbar=False,
                 xticklabels=labels_plot, yticklabels=labels_plot)
     ax_cm_melhor.set_title(f'Melhor {metrica.upper()} - Matriz de Confusão')
@@ -128,7 +140,6 @@ for metrica in metricas:
     ax_cm_melhor.set_ylabel('Verdadeiro (Real)')
     ax_cm_melhor.set_yticklabels(ax_cm_melhor.get_yticklabels(), rotation=0)
 
-    # 5. Plotar Matriz "Pior" (Direita)
     sns.heatmap(mc_pior, annot=True, fmt='d', cmap='Reds', ax=ax_cm_pior, cbar=False,
                 xticklabels=labels_plot, yticklabels=labels_plot)
     ax_cm_pior.set_title(f'Pior {metrica.upper()} - Matriz de Confusão')
@@ -140,12 +151,11 @@ for metrica in metricas:
     plt.show() 
     
     # ----- CURVA DE APRENDIZADO -----
-
+    
     errors_melhor = melhor["errors"] if melhor["errors"] is not None else [0]
     errors_pior = pior["errors"] if pior["errors"] is not None else [0]
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4))  
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4)) 
 
-    # --- Subgráfico 1: Melhor ---
     axes[0].plot(errors_melhor, color='green')
     axes[0].set_title(f"Melhor {metrica.upper()}")
     axes[0].set_ylabel("EQM (Erro Quadrático Médio)")
@@ -153,7 +163,6 @@ for metrica in metricas:
     axes[0].grid(True)
     axes[0].set_yscale('log') 
 
-    # --- Subgráfico 2: Pior ---
     axes[1].plot(errors_pior, color='red')
     axes[1].set_title(f"Pior {metrica.upper()}")
     axes[1].set_ylabel("EQM (Erro Quadrático Médio)")
@@ -161,11 +170,11 @@ for metrica in metricas:
     axes[1].grid(True)
     axes[1].set_yscale('log')
 
-    # Ajustes finais
     plt.suptitle(f"Curvas de Aprendizado - {metrica.upper()}", fontsize=14, fontweight='bold')
     plt.tight_layout(rect=[0, 0, 1, 0.95]) 
     plt.show()
 
+# --- Finalização ---
 plt.show()
 plt.show(block=True) 
 print("\nSimulação concluída.")
