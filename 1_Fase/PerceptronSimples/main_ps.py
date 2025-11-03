@@ -1,10 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from Adaline import ADALINE
-from Avaliador import Avaliador
+from Perceptron import Perceptron
 import seaborn as sns
-from Matriz_Confusao import Matriz_Confusao
+import sys
+import os
+script_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(script_dir, '..'))
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
 
+from Avaliador import Avaliador
+from Matriz_Confusao import Matriz_Confusao
 
 
 data = np.loadtxt("../spiral_d.csv", delimiter=',')
@@ -67,14 +73,31 @@ for r in range(R):
     
     X_teste = Xr[split_idx:, :] 
     y_teste = yr[split_idx:, :]
+
+    # NORMALIZAÇÃO DOS DADOS [-1, 1] 
+    min_treino = X_treino.min(axis=0)
+    max_treino = X_treino.max(axis=0)
     
+    denominador = (max_treino - min_treino) + 1e-8
     
-    ps = ADALINE(X_treino.T, y_treino, plot=True, max_epoch=3, learning_rate=0.01)
+    # x_norm = 2 * (x - min) / (max - min) - 1 ) 
+    X_treino_norm = 2 * (X_treino - min_treino) / denominador - 1
+    
+    # Normalizar o X_teste com base no que foi obtido no treino
+    X_teste_norm = 2 * (X_teste - min_treino) / denominador - 1
+ 
+    # FIM DA NORMALIZAÇÃO
+    
+    ps = Perceptron(X_treino_norm.T, y_treino, plot=True, max_epoch=1000, learning_rate=0.01)
     ps.fit()
+
+
+
+    #OBS!
+    # tem overfitting, a acurácia aumenta muito quando os dados de teste são parecidos com os de treino
     
     
-    
-    y_pred = ps.predict(X_teste.T)
+    y_pred = ps.predict(X_teste_norm.T)
     
     acc, sens, spec, prec, f1 = Avaliador.calcular_metricas(y_teste, y_pred)
     
@@ -137,15 +160,15 @@ for metrica in metricas:
     # --- Subgráfico 1: Melhor ---
     axes[0].plot(errors_melhor, color='green')
     axes[0].set_title(f"Melhor {metrica.upper()}")
-    axes[0].set_ylabel("EQM (Erro Quadrático Médio)")
     axes[0].set_xlabel("Época")
+    axes[0].set_ylabel("Erros por época")
     axes[0].grid(True)
 
     # --- Subgráfico 2: Pior ---
     axes[1].plot(errors_pior, color='red')
     axes[1].set_title(f"Pior {metrica.upper()}")
-    axes[1].set_ylabel("EQM (Erro Quadrático Médio)")
     axes[1].set_xlabel("Época")
+    axes[1].set_ylabel("Erros por época")
     axes[1].grid(True)
 
     # Ajustes finais
