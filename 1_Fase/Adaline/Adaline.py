@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class ADALINE:
-    def __init__(self,X_train,y_train,learning_rate=1e-2,max_epoch=3,tol=1e-5,plot=True):
+    def __init__(self,X_train,y_train,learning_rate=1e-3,max_epoch=300,tol=1e-12,plot=True):
         self.p, self.N = X_train.shape
         self.X_train = np.vstack((
             -np.ones((1,self.N)), X_train
@@ -64,9 +64,10 @@ class ADALINE:
         epochs = 0
         EQM1 = 0
         EQM2 = 1
-        while epochs < self.max_epoch :
+        while epochs < self.max_epoch and abs(EQM1 - EQM2) > self.tol:
             EQM1 = self.EQM()
             self.errors_per_epoch.append(EQM1)
+            
             for k in range(self.N):
                 x_k = self.X_train[:,k].reshape(self.p+1,1)
                 u_k = (self.w.T@x_k)[0,0] #produto escalar
