@@ -127,16 +127,31 @@ for metrica in metricas:
     # 3. Criar a figura com 2 subplots (1 linha, 2 colunas)
     fig_cm, (ax_cm_melhor, ax_cm_pior) = plt.subplots(1, 2, figsize=(14, 6))
     
-    # 4. Plotar Matriz "Melhor" (Esquerda)
-    sns.heatmap(mc_melhor, annot=True, fmt='d', cmap='Greens', ax=ax_cm_melhor, cbar=False,
+    GREENS = ['#006045', '#009966', '#00d492', '#a4f4cf']
+
+    REDS = ['#a50036', '#ec003f', '#ff637e', '#ffccd3']
+    
+    # Cria colormaps fixos
+    cmap_greens = ListedColormap(GREENS)
+    cmap_reds   = ListedColormap(REDS)
+
+    # Normaliza os valores da matriz pra índices 0–3
+    # Assim cada quadrado pega uma cor específica
+    mc_indices = np.array([[0, 1],
+                        [2, 3]])
+
+    # Plotar "Melhor"
+    sns.heatmap(mc_indices, annot=mc_melhor, fmt='d',
+                cmap=cmap_greens, cbar=False, ax=ax_cm_melhor,
                 xticklabels=labels_plot, yticklabels=labels_plot)
     ax_cm_melhor.set_title(f'Melhor {metrica.upper()} - Matriz de Confusão')
     ax_cm_melhor.set_xlabel('Predito (Previsto)')
     ax_cm_melhor.set_ylabel('Verdadeiro (Real)')
     ax_cm_melhor.set_yticklabels(ax_cm_melhor.get_yticklabels(), rotation=0)
 
-    # 5. Plotar Matriz "Pior" (Direita)
-    sns.heatmap(mc_pior, annot=True, fmt='d', cmap='Reds', ax=ax_cm_pior, cbar=False,
+    # Plotar "Pior"
+    sns.heatmap(mc_indices, annot=mc_pior, fmt='d',
+                cmap=cmap_reds, cbar=False, ax=ax_cm_pior,
                 xticklabels=labels_plot, yticklabels=labels_plot)
     ax_cm_pior.set_title(f'Pior {metrica.upper()} - Matriz de Confusão')
     ax_cm_pior.set_xlabel('Predito (Previsto)')

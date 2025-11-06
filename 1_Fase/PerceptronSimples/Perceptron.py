@@ -9,7 +9,6 @@ class Perceptron:
         ))
         self.max_epoch = max_epoch
         self.d = np.array(y_train).flatten()
-        self.COLORS = ['#f6cfff', "#677f8b", '#c4b4ff', '#fccee8', '#96f7e4', '#a4f4cf', '#fef3c6', '#ffccd3']
         self.lr = learning_rate
         self.w = np.zeros((self.p+1,1))
         self.w = np.random.random_sample((self.p+1,1))-.5 # arbritario ?        
@@ -21,9 +20,9 @@ class Perceptron:
             self.fig = plt.figure(2)
             self.ax = self.fig.add_subplot()
             self.ax.scatter(self.X_train[1,self.d[:]==1],
-                            self.X_train[2,self.d[:]==1],c='r', marker='s', s=120, edgecolor='k')
+                            self.X_train[2,self.d[:]==1],c='#ff2cc9', marker='s', s=120, edgecolor='k')
             self.ax.scatter(self.X_train[1,self.d[:]==-1],
-                            self.X_train[2,self.d[:]==-1],c='b', marker='o', s=120, edgecolor='k')
+                            self.X_train[2,self.d[:]==-1],c='#8e51ff', marker='o', s=120, edgecolor='k')
             margin = 0  # margem extra
             x_min, x_max = self.X_train[1].min() - margin, self.X_train[1].max() + margin
             y_min, y_max = self.X_train[2].min() - margin, self.X_train[2].max() + margin
@@ -44,7 +43,7 @@ class Perceptron:
     def draw_line(self,c,alpha):
         x2 = -self.w[1,0]/self.w[2,0]*self.x1 + self.w[0,0]/self.w[2,0]
         x2 = np.nan_to_num(x2)
-        plt.plot(self.x1,x2,c=c,alpha=alpha)
+        plt.plot(self.x1,x2,c=c,alpha=alpha,lw=5)
         
         
     def activation_function(self, u):
@@ -72,7 +71,7 @@ class Perceptron:
             # plt.pause(.4)
             #self.draw_line(c='b',alpha=.1)
 
-        self.draw_line(c='b',alpha=1)    
+        self.draw_line(c='#f9f871',alpha=1)    
         plt.show(block=True)
         # plt.pause(.4)
         # if self.plot:
