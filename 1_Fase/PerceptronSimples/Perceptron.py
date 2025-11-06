@@ -70,9 +70,9 @@ class Perceptron:
             self.errors_per_epoch.append(errors_epoch)
             epochs+=1 #precisa?   
             # plt.pause(.4)
-            # self.draw_line(color='b',alpha=.01)
+            #self.draw_line(c='b',alpha=.1)
 
-        self.draw_line(c='y',alpha=1)    
+        self.draw_line(c='b',alpha=1)    
         plt.show(block=True)
         # plt.pause(.4)
         # if self.plot:

@@ -15,7 +15,8 @@ class ADALINE:
         self.w = np.random.random_sample((self.p+1,1))-.5
         self.plot = plot
         self.x1 = 0
-        self.errors_per_epoch = [] 
+        self.errors_per_epoch = []
+        self.w_per_epoch = [] 
         if plot:
             # plt.ion() # ?
             self.fig = plt.figure(2)
@@ -72,15 +73,15 @@ class ADALINE:
                 u_k = (self.w.T@x_k)[0,0] #produto escalar
                 d_k = self.d[k]#saida desejada
                 e_k = d_k-u_k #erro quadratico
-                self.w = self.w + self.lr*e_k*x_k #lr taxa de aprendizagem
-            
+                self.w  = self.w + self.lr*e_k*x_k #lr taxa de aprendizagem
+            self.w_per_epoch.append(self.w.flatten())
             epochs+=1
             EQM2 = self.EQM()#até aqui ok, conferigo pelo pseudo codigo
             # plt.pause(.1)
-            
+        self.errors_per_epoch.append(EQM2)    
         self.draw_line(c='b',alpha=1)
-        self.errors_per_epoch.append(EQM2)
-        # # plt.pause(.1)
+        
+        # plt.pause(.1)
         # plt.show(block=True)
         # plt.figure(5)
         # plt.plot(self.errors_per_epoch)
