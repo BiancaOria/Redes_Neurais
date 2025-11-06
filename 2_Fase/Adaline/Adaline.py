@@ -19,36 +19,32 @@ class ADALINE:
         self.w_per_epoch = [] 
         if plot:
             # plt.ion() # ?
-            self.fig = plt.figure(2)
-            self.ax = self.fig.add_subplot()
-            self.ax.scatter(self.X_train[1,self.d[:]==1],
-                            self.X_train[2,self.d[:]==1],c='#ff2cc9', marker='s', s=120, edgecolor='k')
-            self.ax.scatter(self.X_train[1,self.d[:]==-1],
-                            self.X_train[2,self.d[:]==-1],c='#8e51ff', marker='o', s=120, edgecolor='k')
+            # self.fig = plt.figure(2)
+            # self.ax = self.fig.add_subplot()
+            # self.ax.scatter(self.X_train[1,self.d[:]==1],
+            #                 self.X_train[2,self.d[:]==1],c='#ff2cc9', marker='s', s=120, edgecolor='k')
+            # self.ax.scatter(self.X_train[1,self.d[:]==-1],
+            #                 self.X_train[2,self.d[:]==-1],c='#8e51ff', marker='o', s=120, edgecolor='k')
             margin = 0  # margem extra
             x_min, x_max = self.X_train[1].min() - margin, self.X_train[1].max() + margin
             y_min, y_max = self.X_train[2].min() - margin, self.X_train[2].max() + margin
-            self.ax.grid(True)
+            # self.ax.grid(True)
 
-            self.ax.set_xlim(x_min, x_max)
-            self.ax.set_ylim(y_min, y_max)
+            # self.ax.set_xlim(x_min, x_max)
+            # self.ax.set_ylim(y_min, y_max)
             
             
             self.x1 = np.linspace(x_min,x_max)
             
-            self.ax.set_xlabel("Variável 1")
-            self.ax.set_ylabel("Variável 2")
+            # self.ax.set_xlabel("Variável 1")
+            # self.ax.set_ylabel("Variável 2")
     
-            self.ax.set_title("Plano de Regressão do ADALINE")
+            # self.ax.set_title("Plano de Regressão do ADALINE")
             # self.ax.legend()
             
             
         
-    def draw_line(self,c,alpha,lw=2):
-        
-        x2 = -self.w[1,0]/self.w[2,0]*self.x1 + self.w[0,0]/self.w[2,0]
-        x2 = np.nan_to_num(x2)
-        plt.plot(self.x1,x2,c=c,alpha=alpha,lw=5)
+
         
     def activation_function(self, u):
         return 1 if u >= 0 else - 1
@@ -89,7 +85,7 @@ class ADALINE:
             EQM2 = self.EQM()#até aqui ok, conferigo pelo pseudo codigo
             # plt.pause(.1)
         self.errors_per_epoch.append(EQM2)    
-        self.draw_line(c='#f9f871',alpha=1)
+        
         
     def predict(self, X_test):
             
