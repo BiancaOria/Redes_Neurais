@@ -22,9 +22,9 @@ class ADALINE:
             self.fig = plt.figure(2)
             self.ax = self.fig.add_subplot()
             self.ax.scatter(self.X_train[1,self.d[:]==1],
-                            self.X_train[2,self.d[:]==1],c='r', marker='s', s=120, edgecolor='k')
+                            self.X_train[2,self.d[:]==1],c='#ff2cc9', marker='s', s=120, edgecolor='k')
             self.ax.scatter(self.X_train[1,self.d[:]==-1],
-                            self.X_train[2,self.d[:]==-1],c='b', marker='o', s=120, edgecolor='k')
+                            self.X_train[2,self.d[:]==-1],c='#8e51ff', marker='o', s=120, edgecolor='k')
             margin = 0  # margem extra
             x_min, x_max = self.X_train[1].min() - margin, self.X_train[1].max() + margin
             y_min, y_max = self.X_train[2].min() - margin, self.X_train[2].max() + margin
@@ -48,7 +48,7 @@ class ADALINE:
         
         x2 = -self.w[1,0]/self.w[2,0]*self.x1 + self.w[0,0]/self.w[2,0]
         x2 = np.nan_to_num(x2)
-        plt.plot(self.x1,x2,c=c,alpha=alpha)
+        plt.plot(self.x1,x2,c=c,alpha=alpha,lw=5)
         
     def activation_function(self, u):
         return 1 if u>=0 else -1
@@ -80,7 +80,7 @@ class ADALINE:
             EQM2 = self.EQM()#até aqui ok, conferigo pelo pseudo codigo
             # plt.pause(.1)
         self.errors_per_epoch.append(EQM2)    
-        self.draw_line(c='b',alpha=1)
+        self.draw_line(c='#f9f871',alpha=1)
         
         # plt.pause(.1)
         # plt.show(block=True)

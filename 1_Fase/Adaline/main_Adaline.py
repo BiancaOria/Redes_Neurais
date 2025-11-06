@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from Adaline import ADALINE
 import seaborn as sns
+from matplotlib.colors import ListedColormap
 import sys
 import os
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -11,7 +12,6 @@ if parent_dir not in sys.path:
 
 from Avaliador import Avaliador
 from Matriz_Confusao import Matriz_Confusao
-
 
 
 data = np.loadtxt("../spiral_d.csv", delimiter=',')
@@ -28,11 +28,11 @@ fig = plt.figure(1)
 ax = fig.add_subplot()
 ax.scatter(XT[0, (d==1)],
                 XT[1, (d==1)],
-                c='r', marker='s', s=120, edgecolor='k')
+                c='#ff2cc9', marker='s', s=120, edgecolor='k')
 
 ax.scatter(XT[0, (d==-1)],
                 XT[1, (d==-1)],
-                c='b', marker='o', s=120, edgecolor='k')
+                c='#8e51ff', marker='o', s=120, edgecolor='k')
 margin = 0  # margem extra
 x_min, x_max = XT[0].min() - margin, XT[0].max() + margin
 y_min, y_max = XT[1].min() - margin, XT[1].max() + margin
@@ -57,7 +57,7 @@ metricas_especificidade = []
 metricas_precisao = []
 metricas_f1_score = []
 resultados = []
-R = 1 #ajustar
+R = 500 #ajustar
 
 print(f"Iniciando simulação de Monte Carlo com {R} rodadas...")
 for r in range(R):
@@ -92,9 +92,7 @@ for r in range(R):
     
     ps = ADALINE(X_treino_norm.T, y_treino, plot=True, max_epoch=3000, learning_rate=0.001)
     ps.fit()
-    
-    
-    
+        
     y_pred = ps.predict(X_teste_norm.T)
     
     acc, sens, spec, prec, f1 = Avaliador.calcular_metricas(y_teste, y_pred)
@@ -127,22 +125,38 @@ for metrica in metricas:
     
     # 3. Criar a figura com 2 subplots (1 linha, 2 colunas)
     fig_cm, (ax_cm_melhor, ax_cm_pior) = plt.subplots(1, 2, figsize=(14, 6))
+
+    GREENS = ['#006045', '#009966', '#00d492', '#a4f4cf']
+
+    REDS = ['#a50036', '#ec003f', '#ff637e', '#ffccd3']
     
-    # 4. Plotar Matriz "Melhor" (Esquerda)
-    sns.heatmap(mc_melhor, annot=True, fmt='d', cmap='Greens', ax=ax_cm_melhor, cbar=False,
+    # Cria colormaps fixos
+    cmap_greens = ListedColormap(GREENS)
+    cmap_reds   = ListedColormap(REDS)
+
+    # Normaliza os valores da matriz pra índices 0–3
+    # Assim cada quadrado pega uma cor específica
+    mc_indices = np.array([[0, 1],
+                        [2, 3]])
+
+    # Plotar "Melhor"
+    sns.heatmap(mc_indices, annot=mc_melhor, fmt='d',
+                cmap=cmap_greens, cbar=False, ax=ax_cm_melhor,
                 xticklabels=labels_plot, yticklabels=labels_plot)
     ax_cm_melhor.set_title(f'Melhor {metrica.upper()} - Matriz de Confusão')
     ax_cm_melhor.set_xlabel('Predito (Previsto)')
     ax_cm_melhor.set_ylabel('Verdadeiro (Real)')
     ax_cm_melhor.set_yticklabels(ax_cm_melhor.get_yticklabels(), rotation=0)
 
-    # 5. Plotar Matriz "Pior" (Direita)
-    sns.heatmap(mc_pior, annot=True, fmt='d', cmap='Reds', ax=ax_cm_pior, cbar=False,
+    # Plotar "Pior"
+    sns.heatmap(mc_indices, annot=mc_pior, fmt='d',
+                cmap=cmap_reds, cbar=False, ax=ax_cm_pior,
                 xticklabels=labels_plot, yticklabels=labels_plot)
     ax_cm_pior.set_title(f'Pior {metrica.upper()} - Matriz de Confusão')
     ax_cm_pior.set_xlabel('Predito (Previsto)')
     ax_cm_pior.set_ylabel('Verdadeiro (Real)')
     ax_cm_pior.set_yticklabels(ax_cm_pior.get_yticklabels(), rotation=0)
+
     
     plt.tight_layout()
     plt.show() # Mostra a figura das matrizes
@@ -156,14 +170,14 @@ for metrica in metricas:
     fig, axes = plt.subplots(1, 2, figsize=(12, 4))  # 1 linha, 2 colunas
 
     # --- Subgráfico 1: Melhor ---
-    axes[0].plot(errors_melhor, color='green')
+    axes[0].plot(errors_melhor, color=GREENS[1])
     axes[0].set_title(f"Melhor {metrica.upper()}")
     axes[0].set_ylabel("EQM (Erro Quadrático Médio)")
     axes[0].set_xlabel("Época")
     axes[0].grid(True)
 
     # --- Subgráfico 2: Pior ---
-    axes[1].plot(errors_pior, color='red')
+    axes[1].plot(errors_pior, color=REDS[1])
     axes[1].set_title(f"Pior {metrica.upper()}")
     axes[1].set_ylabel("EQM (Erro Quadrático Médio)")
     axes[1].set_xlabel("Época")
@@ -183,7 +197,6 @@ Avaliador.print_stat("Sensibilidade", metricas_sensibilidade)
 Avaliador.print_stat("Especificidade", metricas_especificidade)
 Avaliador.print_stat("Precisão", metricas_precisao)
 Avaliador.print_stat("F1-Score", metricas_f1_score)
-
 
 
 plt.ioff()
