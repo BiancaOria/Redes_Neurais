@@ -90,7 +90,7 @@ for r in range(R):
     # FIM DA NORMALIZAÇÃO
     
     
-    ps = ADALINE(X_treino_norm.T, y_treino, plot=True, max_epoch=3, learning_rate=0.01)
+    ps = ADALINE(X_treino_norm.T, y_treino, plot=True, max_epoch=3000, learning_rate=0.001)
     ps.fit()
     
     
