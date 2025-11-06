@@ -28,10 +28,10 @@ class Perceptron_Mult:
             self.fig = plt.figure(2)
             self.ax = self.fig.add_subplot()
             self.ax.scatter(self.X_train[1, self.d[:, 0] == 1],
-                            self.X_train[2, self.d[:, 0] == 1], marker='s', s=120)
+                            self.X_train[2, self.d[:, 0] == 1],c='r', marker='s', s=120, edgecolor='k')
             self.ax.scatter(self.X_train[1, self.d[:, 0] == -1],
-                            self.X_train[2, self.d[:, 0] == -1], marker='o', s=120)
-            margin = 1
+                            self.X_train[2, self.d[:, 0] == -1],c='b', marker='o', s=120, edgecolor='k')
+            margin = 0
             x_min, x_max = self.X_train[1].min() - margin, self.X_train[1].max() + margin
             y_min, y_max = self.X_train[2].min() - margin, self.X_train[2].max() + margin
 

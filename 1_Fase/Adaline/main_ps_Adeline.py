@@ -33,7 +33,7 @@ ax.scatter(XT[0, (d==1)],
 ax.scatter(XT[0, (d==-1)],
                 XT[1, (d==-1)],
                 c='b', marker='o', s=120, edgecolor='k')
-margin = 1  # margem extra
+margin = 0  # margem extra
 x_min, x_max = XT[0].min() - margin, XT[0].max() + margin
 y_min, y_max = XT[1].min() - margin, XT[1].max() + margin
 
