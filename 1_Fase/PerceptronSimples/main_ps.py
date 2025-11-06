@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from Perceptron import Perceptron
 import seaborn as sns
+from matplotlib.colors import ListedColormap
 import sys
 import os
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -27,11 +28,11 @@ fig = plt.figure(1)
 ax = fig.add_subplot()
 ax.scatter(XT[0, (d==1)],
                 XT[1, (d==1)],
-                c='r', marker='s', s=120, edgecolor='k')
+                c='#ff2cc9', marker='s', s=120, edgecolor='k')
 
 ax.scatter(XT[0, (d==-1)],
                 XT[1, (d==-1)],
-                c='b', marker='o', s=120, edgecolor='k')
+                c='#8e51ff', marker='o', s=120, edgecolor='k')
 margin = 1  # margem extra
 x_min, x_max = XT[0].min() - margin, XT[0].max() + margin
 y_min, y_max = XT[1].min() - margin, XT[1].max() + margin
