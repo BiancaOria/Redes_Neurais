@@ -51,7 +51,16 @@ class ADALINE:
         plt.plot(self.x1,x2,c=c,alpha=alpha,lw=5)
         
     def activation_function(self, u):
-        return 1 if u>=0 else -1
+        return 1 if u >= 0 else - 1
+        
+    #classe nova pra a segundfa fase
+    def predict_raw(self, X_test):
+        p_test, N_test = X_test.shape
+        X_test_bias = np.vstack((
+            -np.ones((1, N_test)), X_test
+        ))
+        u_test = self.w.T @ X_test_bias  # produto escalar (1, N_test)
+        return u_test.flatten()
     
     def EQM(self):#conferido pelo psudocodigo
         eqm = 0

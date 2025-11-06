@@ -68,16 +68,10 @@ class Perceptron:
                     errors_epoch += 1
             self.errors_per_epoch.append(errors_epoch)
             epochs+=1 #precisa?   
-            # plt.pause(.4)
-            #self.draw_line(c='b',alpha=.1)
 
         self.draw_line(c='#f9f871',alpha=1)    
-        plt.show(block=True)
-        # plt.pause(.4)
-        # if self.plot:
-        #     self.draw_line(color='y',alpha=.1)
-        #     plt.show()
-        #     plt.show(block=True)
+        #plt.show(block=True)
+       
     def predict(self, X_test):
             
         p_test, N_test = X_test.shape

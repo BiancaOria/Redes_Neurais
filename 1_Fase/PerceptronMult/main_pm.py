@@ -171,14 +171,14 @@ for metrica in metricas:
     fig, axes = plt.subplots(1, 2, figsize=(12, 4))  # 1 linha, 2 colunas
 
     # --- Subgráfico 1: Melhor ---
-    axes[0].plot(errors_melhor, color='green')
+    axes[0].plot(errors_melhor, color=GREENS[1])
     axes[0].set_title(f"Melhor {metrica.upper()}")
     axes[0].set_xlabel("Época")
     axes[0].set_ylabel("Erros por época")
     axes[0].grid(True)
 
     # --- Subgráfico 2: Pior ---
-    axes[1].plot(errors_pior, color='red')
+    axes[1].plot(errors_pior, color=REDS[1])
     axes[1].set_title(f"Pior {metrica.upper()}")
     axes[1].set_xlabel("Época")
     axes[1].set_ylabel("Erros por época")
