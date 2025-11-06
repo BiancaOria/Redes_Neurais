@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from RBF import RBF 
+from Perceptron_Mult import Perceptron_Mult
 import seaborn as sns
 import sys
 import os
@@ -11,7 +11,6 @@ if parent_dir not in sys.path:
 
 from Avaliador import Avaliador
 from Matriz_Confusao import Matriz_Confusao
-
 
 
 data = np.loadtxt("../spiral_d.csv", delimiter=',')
@@ -27,13 +26,13 @@ XT=X.T
 fig = plt.figure(1)
 ax = fig.add_subplot()
 ax.scatter(XT[0, (d==1)],
-           XT[1, (d==1)],
-           c='r', marker='s', s=120, edgecolor='k')
+                XT[1, (d==1)],
+                c='r', marker='s', s=120, edgecolor='k')
 
 ax.scatter(XT[0, (d==-1)],
-           XT[1, (d==-1)],
-           c='b', marker='o', s=120, edgecolor='k')
-margin = 1 
+                XT[1, (d==-1)],
+                c='b', marker='o', s=120, edgecolor='k')
+margin = 1  # margem extra
 x_min, x_max = XT[0].min() - margin, XT[0].max() + margin
 y_min, y_max = XT[1].min() - margin, XT[1].max() + margin
 
@@ -45,7 +44,8 @@ ax.set_ylim(y_min, y_max)
 ax.set_xlabel("Variável 1")
 ax.set_ylabel("Variável 2")
 
-ax.set_title("Visualização Inicial dos Dados (Espiral)")
+ax.set_title("Visualização Inicial dos Dados")
+# ax.legend()
 ax.grid(True)
 
 #monte carlo
@@ -56,7 +56,7 @@ metricas_especificidade = []
 metricas_precisao = []
 metricas_f1_score = []
 resultados = []
-R = 1 
+R = 1 #ajustar
 
 print(f"Iniciando simulação de Monte Carlo com {R} rodadas...")
 for r in range(R):
@@ -74,7 +74,6 @@ for r in range(R):
     X_teste = Xr[split_idx:, :] 
     y_teste = yr[split_idx:, :]
     
-    
     # NORMALIZAÇÃO DOS DADOS [-1, 1] 
     min_treino = X_treino.min(axis=0)
     max_treino = X_treino.max(axis=0)
@@ -89,18 +88,12 @@ for r in range(R):
  
     # FIM DA NORMALIZAÇÃO
     
-    
-    # Agora, passamos os dados NORMALIZADOS para a RBF
-    ps = RBF(X_treino_norm.T, y_treino, 
-             num_centers=50,
-             sigma=1.0,
-             learning_rate=0.005,
-             max_epoch=200)
-    
+    layer_dims = [X_treino.shape[1], 2, 5, 1]
+    ps = Perceptron_Mult(layer_dims, X_treino_norm.T, y_treino, plot=True, max_epoch=100,learning_rate=0.01)
     ps.fit()
     
     
-    # Usamos os dados de teste NORMALIZADOS para prever
+    
     y_pred = ps.predict(X_teste_norm.T)
     
     acc, sens, spec, prec, f1 = Avaliador.calcular_metricas(y_teste, y_pred)
@@ -131,8 +124,10 @@ for metrica in metricas:
     mc_melhor = Matriz_Confusao.conf_matriz(melhor["y_true"], melhor["y_pred"])
     mc_pior = Matriz_Confusao.conf_matriz(pior["y_true"], pior["y_pred"])
     
+    # 3. Criar a figura com 2 subplots (1 linha, 2 colunas)
     fig_cm, (ax_cm_melhor, ax_cm_pior) = plt.subplots(1, 2, figsize=(14, 6))
     
+    # 4. Plotar Matriz "Melhor" (Esquerda)
     sns.heatmap(mc_melhor, annot=True, fmt='d', cmap='Greens', ax=ax_cm_melhor, cbar=False,
                 xticklabels=labels_plot, yticklabels=labels_plot)
     ax_cm_melhor.set_title(f'Melhor {metrica.upper()} - Matriz de Confusão')
@@ -140,6 +135,7 @@ for metrica in metricas:
     ax_cm_melhor.set_ylabel('Verdadeiro (Real)')
     ax_cm_melhor.set_yticklabels(ax_cm_melhor.get_yticklabels(), rotation=0)
 
+    # 5. Plotar Matriz "Pior" (Direita)
     sns.heatmap(mc_pior, annot=True, fmt='d', cmap='Reds', ax=ax_cm_pior, cbar=False,
                 xticklabels=labels_plot, yticklabels=labels_plot)
     ax_cm_pior.set_title(f'Pior {metrica.upper()} - Matriz de Confusão')
@@ -148,33 +144,36 @@ for metrica in metricas:
     ax_cm_pior.set_yticklabels(ax_cm_pior.get_yticklabels(), rotation=0)
     
     plt.tight_layout()
-    plt.show() 
+    plt.show() # Mostra a figura das matrizes
     
     # ----- CURVA DE APRENDIZADO -----
     
+    # Garante que 'errors' não é None
     errors_melhor = melhor["errors"] if melhor["errors"] is not None else [0]
     errors_pior = pior["errors"] if pior["errors"] is not None else [0]
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4)) 
+    # --- CURVAS DE APRENDIZADO (Melhor x Pior) ---
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))  # 1 linha, 2 colunas
 
+    # --- Subgráfico 1: Melhor ---
     axes[0].plot(errors_melhor, color='green')
     axes[0].set_title(f"Melhor {metrica.upper()}")
-    axes[0].set_ylabel("EQM (Erro Quadrático Médio)")
     axes[0].set_xlabel("Época")
+    axes[0].set_ylabel("Erros por época")
     axes[0].grid(True)
-    axes[0].set_yscale('log') 
 
+    # --- Subgráfico 2: Pior ---
     axes[1].plot(errors_pior, color='red')
     axes[1].set_title(f"Pior {metrica.upper()}")
-    axes[1].set_ylabel("EQM (Erro Quadrático Médio)")
     axes[1].set_xlabel("Época")
+    axes[1].set_ylabel("Erros por época")
     axes[1].grid(True)
-    axes[1].set_yscale('log')
 
+    # Ajustes finais
     plt.suptitle(f"Curvas de Aprendizado - {metrica.upper()}", fontsize=14, fontweight='bold')
-    plt.tight_layout(rect=[0, 0, 1, 0.95]) 
+    plt.tight_layout(rect=[0, 0, 1, 0.95])  # Deixa espaço para o título
     plt.show()
 
-# --- Finalização ---
+# --- Finalização (sem alterações) ---
 plt.show()
 plt.show(block=True) 
 print("\nSimulação concluída.")

@@ -42,12 +42,6 @@ class Perceptron_Mult:
             self.ax.set_ylabel("Variável 2")
             self.ax.set_title("Plano de Regressão do Perceptron")
 
-    def draw_line(self, c, alpha):
-        w = self.W[0]
-        x2 = -w[1, 0] / w[2, 0] * self.x1 + w[0, 0] / w[2, 0]
-        x2 = np.nan_to_num(x2)
-        plt.plot(self.x1, x2, c=c, alpha=alpha)
-
     def activation_function(self, u):
         return np.where(u >= 0, 1, -1)
 
@@ -77,6 +71,7 @@ class Perceptron_Mult:
             EQM = self.EQM()
             self.errors_per_epoch.append(EQM)
             Epoch += 1
+        
 
     def backward(self, x_amostra, d):
         delta = [None] * len(self.W)
