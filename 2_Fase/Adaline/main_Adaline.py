@@ -20,7 +20,7 @@ from Matriz_Confusao import Matriz_Confusao
 # ----------------------------------------------------------
 # Funções auxiliares
 # ----------------------------------------------------------
-def carregar_imagens_recfac(root_folder, size=(40, 40)):
+def carregar_imagens_recfac(root_folder, size=(30, 30)):
     X_list, labels = [], []
     valid_ext = {'.png'}
 
@@ -61,11 +61,11 @@ def codificar_one_hot_bipolar(labels):
 # ----------------------------------------------------------
 if __name__ == "__main__":
     ROOT = os.path.join(parent_dir, "RecFac")
-    IMG_SIZE = (40, 40)
-    R = 100 #TODO ajustar p 10 ou 100
-    LR = 0.001
-    MAX_EPOCH = 300
-    TOL = 1e-6
+    IMG_SIZE = (30, 30)
+    R = 1
+    LR = 1e-3
+    MAX_EPOCH = 1000
+    TOL = 1e-12
 
     print("Carregando imagens da pasta RecFac...")
     X_raw, labels = carregar_imagens_recfac(ROOT, size=IMG_SIZE)
@@ -91,26 +91,39 @@ if __name__ == "__main__":
         y_idx_r = y_idx[idx]
 
         split = int(0.8 * N)
-        X_train, X_test = Xr[:split], Xr[split:]
+        X_treino, X_teste = Xr[:split], Xr[split:]
         Y_train, Y_test = Yr[:split], Yr[split:]
         y_true_test = y_idx_r[split:]
 
-        X_train_T = X_train.T
-        X_test_T = X_test.T
+
+        # NORMALIZAÇÃO DOS DADOS [-1, 1] 
+        min_treino = X_treino.min(axis=0)
+        max_treino = X_treino.max(axis=0)
+        
+        denominador = (max_treino - min_treino) + 1e-8
+        
+        # x_norm = 2 * (x - min) / (max - min) - 1 ) 
+        X_treino_norm = 2 * (X_treino - min_treino) / denominador - 1
+        
+        # Normalizar o X_teste com base no que foi obtido no treino
+        X_teste_norm = 2 * (X_teste - min_treino) / denominador - 1
+
+        # FIM DA NORMALIZAÇÃO
 
         models = []
         for c in range(n_classes):
+            
             y_c = Y_train[:, c].reshape(-1, 1)
-            model = ADALINE(X_train_T, y_c, learning_rate=LR, max_epoch=MAX_EPOCH, tol=TOL, plot=False)
+            model = ADALINE(X_treino_norm.T, y_c, learning_rate=LR, max_epoch=MAX_EPOCH, tol=TOL, plot=False)
             model.fit()
             models.append(model)
 
-        ativacoes = np.zeros((n_classes, X_test.shape[0]))
+        ativacoes = np.zeros((n_classes, X_teste_norm.shape[0]))
         for c, model in enumerate(models):
-            ativacoes[c, :] = np.dot(model.w.T, np.vstack((-np.ones((1, X_test_T.shape[1])), X_test_T)))
+            ativacoes[c, :] = np.dot(model.w.T, np.vstack((-np.ones((1, X_teste_norm.T.shape[1])), X_teste_norm.T)))
 
         idx_pred = np.argmax(ativacoes, axis=0)
-        Y_pred = -1 * np.ones((X_test.shape[0], n_classes), dtype=int)
+        Y_pred = -1 * np.ones((X_teste_norm.shape[0], n_classes), dtype=int)
         for i, c_idx in enumerate(idx_pred):
             Y_pred[i, c_idx] = 1
 
@@ -157,7 +170,7 @@ if __name__ == "__main__":
             # Normaliza os valores da matriz pra índices 0–3
             # Assim cada quadrado pega uma cor específica
             mc_indices = np.array([[0, 1],
-                                [2, 3]])
+                                   [2, 3]])
 
             mc = Matriz_Confusao.conf_matriz(y_true_c, y_pred_c, labels=[1, -1])
             soma_total += mc.sum()
@@ -178,4 +191,95 @@ if __name__ == "__main__":
     gerar_matrizes(best["Y_test"], best["Y_pred"], cmap_greens, "Melhor Rodada")
     gerar_matrizes(worst["Y_test"], worst["Y_pred"], cmap_reds, "Pior Rodada")
 
-    print("\nSimulação concluída com sucesso.")
+    # ----------------------------------------------------------
+    # FUNÇÃO AUXILIAR PARA CURVAS DE APRENDIZADO
+    # ----------------------------------------------------------
+    def plotar_curva_aprendizado(resultados_rodada, n_classes, titulo_grafico, cor_plot):
+
+        all_errors = []
+        max_len = 0
+        
+        try:
+            # Itera sobre os 20 modelos treinados na rodada
+            for model in resultados_rodada["models"]:
+                
+                history = model.errors_per_epoch 
+                # ---------------------------------------------------
+
+                if not hasattr(model, 'errors_per_epoch'):
+                       print(f"O NOME DO MODELO É ADELE PARA OS ÍNTIMOS 🦄.")
+                       raise AttributeError("Atributo 'errors_per_epoch' não encontrado no modelo.")
+
+                all_errors.append(history)
+                if len(history) > max_len:
+                    max_len = len(history)
+                    
+        except AttributeError as e:
+            print(str(e))
+            print(f"Não foi possível gerar a curva de aprendizado para: {titulo_grafico}.\n")
+            return 
+        
+        
+        if max_len == 0:
+            print(f"Nenhum histórico de erro encontrado para: {titulo_grafico}.")
+            return
+
+        
+        padded_errors = np.zeros((n_classes, max_len))
+        
+        for i, history in enumerate(all_errors):
+            last_error = history[-1] if len(history) > 0 else 0
+            padded_errors[i, :len(history)] = history
+            padded_errors[i, len(history):] = last_error 
+    
+        # Calcular média e desvio padrão entre os 20 modelos
+        mean_errors = np.mean(padded_errors, axis=0)
+        std_errors = np.std(padded_errors, axis=0)
+    
+        epochs = np.arange(1, max_len + 1)
+    
+        # Plotar o gráfico
+        plt.figure(figsize=(12, 7))
+        plt.plot(epochs, mean_errors, color=cor_plot, lw=2, label='Erro Quadrático Médio (MSE) - Média')
+        
+        # Plotar a banda de desvio padrão
+        plt.fill_between(epochs, 
+                         mean_errors - std_errors, 
+                         mean_errors + std_errors, 
+                         color=cor_plot, 
+                         alpha=0.2, 
+                         label='Desvio Padrão (± 1 std)')
+        
+        plt.title(f'Curva de Aprendizado Média ({titulo_grafico})', fontsize=16, fontweight='bold')
+        plt.xlabel('Época', fontsize=12)
+        plt.ylabel('Erro Quadrático Médio (MSE) - Escala Log', fontsize=12)
+        plt.legend(fontsize=11)
+        plt.grid(True, linestyle='--', alpha=0.6)
+        
+        # Usar escala logarítmica no eixo Y é bom para ver a convergência
+        plt.yscale('log')
+        
+        plt.tight_layout()
+        plt.show()
+
+    # ----------------------------------------------------------
+    # CURVAS DE APRENDIZADO - MELHOR E PIOR RODADA
+    # ----------------------------------------------------------
+    
+    # Plotar a curva da melhor rodada 
+    plotar_curva_aprendizado(
+        best, 
+        n_classes, 
+        f"Melhor Rodada - N° {best_idx+1}", 
+        GREENS[1] 
+    )
+    
+    # Plotar a curva da pior rodada 
+    plotar_curva_aprendizado(
+        worst, 
+        n_classes, 
+        f"Pior Rodada - N° {worst_idx+1}", 
+        REDS[1] 
+    )
+
+    
