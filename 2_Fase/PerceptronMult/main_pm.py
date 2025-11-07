@@ -12,13 +12,13 @@ parent_dir = os.path.abspath(os.path.join(script_dir, '..'))
 if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
-from Perceptron import Perceptron
+from neural_network import MultilayerPerceptron
 from Avaliador import Avaliador
 from Matriz_Confusao import Matriz_Confusao
 
 
 # ----------------------------------------------------------
-# Funções auxiliares
+# Funções auxiliares (iguais ao ADALINE)
 # ----------------------------------------------------------
 def carregar_imagens_recfac(root_folder, size=(30, 30)):
     X_list, labels = [], []
@@ -62,25 +62,28 @@ def codificar_one_hot_bipolar(labels):
 if __name__ == "__main__":
     ROOT = os.path.join(parent_dir, "RecFac")
     IMG_SIZE = (30, 30)
-    R = 1 #TODO ajustar p 10 
-    LR = 0.001
-    MAX_EPOCH = 300
-
+    R = 1
+    LR = 1e-3
+    MAX_EPOCH = 100
     print("Carregando imagens da pasta RecFac...")
+
+    # --- Carregar imagens e rótulos ---
     X_raw, labels = carregar_imagens_recfac(ROOT, size=IMG_SIZE)
     N, p = X_raw.shape
     print(f"Total de imagens: {N}")
     print(f"Tamanho das imagens: {IMG_SIZE[0]}x{IMG_SIZE[1]} = {p} neurônios de entrada")
 
+    # --- Codificação bipolar one-hot ---
     Y, label_to_idx, classes = codificar_one_hot_bipolar(labels)
     n_classes = len(classes)
     y_idx = np.array([label_to_idx[l] for l in labels])
     print(f"Classes detectadas ({n_classes}): {list(range(n_classes))}")
 
+    # --- Normalização global para [-1, 1] ---
     X_norm = (X_raw / 127.5) - 1.0
 
     resultados = []
-    accs = []
+    metricas_acc = []
 
     print(f"\nIniciando Monte Carlo com R = {R} rodadas...\n")
     for r in range(R):
@@ -94,55 +97,46 @@ if __name__ == "__main__":
         Y_train, Y_test = Yr[:split], Yr[split:]
         y_true_test = y_idx_r[split:]
 
-        
-        # NORMALIZAÇÃO DOS DADOS [-1, 1] 
+        # --- Normalização baseada no treino ---
         min_treino = X_treino.min(axis=0)
         max_treino = X_treino.max(axis=0)
-        
-        denominador = (max_treino - min_treino) + 1e-8
-        
-        # x_norm = 2 * (x - min) / (max - min) - 1 ) 
-        X_treino_norm = 2 * (X_treino - min_treino) / denominador - 1
-        
-        # Normalizar o X_teste com base no que foi obtido no treino
-        X_teste_norm = 2 * (X_teste - min_treino) / denominador - 1
+        denom = (max_treino - min_treino) + 1e-8
+        X_treino_norm = 2 * (X_treino - min_treino) / denom - 1
+        X_teste_norm = 2 * (X_teste - min_treino) / denom - 1
 
-        # FIM DA NORMALIZAÇÃO
+        # --- Estrutura da rede ---
+        layer_dims = [p, 100, 50, n_classes]  # Exemplo: 2 camadas ocultas
 
-        models = []
-        for c in range(n_classes):
-            y_c = Y_train[:, c].reshape(-1, 1)
-            model = Perceptron(X_treino_norm.T, y_c, learning_rate=LR, max_epoch=MAX_EPOCH, plot=False)
-            model.fit()
-            models.append(model)
+        mlp = MultilayerPerceptron(
+            topology=layer_dims,
+            X_train=X_treino_norm.T,
+            Y_train=Y_train.T,
+            learning_rate=LR,
+            max_epoch=MAX_EPOCH
+        )
 
-        ativacoes = np.zeros((n_classes, X_teste_norm.shape[0]))
-        for c, model in enumerate(models):
-            ativacoes[c, :] = np.dot(model.w.T, np.vstack((-np.ones((1, X_teste_norm.T.shape[1])), X_teste_norm.T)))
+        mlp.fit()
+        Y_pred = mlp.predict(X_teste_norm.T)
 
-        idx_pred = np.argmax(ativacoes, axis=0)
-        Y_pred = -1 * np.ones((X_teste.shape[0], n_classes), dtype=int)
-        for i, c_idx in enumerate(idx_pred):
-            Y_pred[i, c_idx] = 1
+        # --- Converter saída contínua para bipolar ---
+        Y_pred_bin = np.where(Y_pred >= 0, 1, -1)
 
-        y_pred = idx_pred
+        # --- Converter para índices de classe ---
+        y_pred = np.argmax(Y_pred_bin, axis=0)
         acuracia = np.mean(y_pred == y_true_test)
-        accs.append(acuracia)
-        print("--"*20)
-        print(y_pred)
-        print("--"*20)
-        print(y_true_test)
-        print("--"*20)
+        metricas_acc.append(acuracia)
+
         resultados.append({
             "acc": acuracia,
-            "models": models,
             "Y_test": Y_test,
-            "Y_pred": Y_pred
+            "Y_pred": Y_pred_bin,
+            "errors": mlp.errors_per_epoch
         })
+
         print(f"Rodada {r+1}/{R} concluída. Acurácia = {acuracia*100:.2f}%")
 
-    # Selecionar melhor e pior rodada
-    accs = np.array(accs)
+    # --- Selecionar melhor e pior rodada ---
+    accs = np.array(metricas_acc)
     best_idx = np.argmax(accs)
     worst_idx = np.argmin(accs)
     best = resultados[best_idx]
@@ -151,10 +145,7 @@ if __name__ == "__main__":
     print(f"\nMelhor rodada ({best_idx+1}) -> Acurácia: {accs[best_idx]*100:.2f}%")
     print(f"Pior rodada ({worst_idx+1}) -> Acurácia: {accs[worst_idx]*100:.2f}%")
 
-    # ----------------------------------------------------------
-    # MATRIZES 2×2 INDIVIDUAIS - MELHOR E PIOR
-    # ----------------------------------------------------------
-
+    # --- Matrizes de Confusão individuais (melhor e pior) ---
     GREENS = ['#006045', '#009966', '#00d492', '#a4f4cf']
     REDS = ['#a50036', '#ec003f', '#ff637e', '#ffccd3']
     cmap_greens = ListedColormap(GREENS)
@@ -163,20 +154,12 @@ if __name__ == "__main__":
     def gerar_matrizes(Y_true, Y_pred, cmap, titulo):
         fig, axes = plt.subplots(4, 5, figsize=(18, 12))
         axes = axes.flatten()
-        soma_total = 0
-
         for c in range(n_classes):
             y_true_c = Y_true[:, c]
             y_pred_c = Y_pred[:, c]
-
-            # Normaliza os valores da matriz pra índices 0–3
-            # Assim cada quadrado pega uma cor específica
-            mc_indices = np.array([[0, 1],
-                                [2, 3]])
-
             mc = Matriz_Confusao.conf_matriz(y_true_c, y_pred_c, labels=[1, -1])
-            soma_total += mc.sum()
-
+            mc_indices = np.array([[0, 1],
+                                   [2, 3]])
             sns.heatmap(mc_indices, annot=mc, fmt='d', cmap=cmap, cbar=False,
                         xticklabels=[1, -1], yticklabels=[1, -1], ax=axes[c])
             axes[c].set_title(f"Classe {c+1}", fontsize=10)
@@ -187,9 +170,6 @@ if __name__ == "__main__":
         plt.tight_layout(rect=[0, 0, 1, 0.96])
         plt.show()
 
-        # print(f"Soma total ({titulo}): {soma_total} (deve ser 640)") 
-
-    # --- Plotar as 20 melhores (verde) e 20 piores (vermelho)
     gerar_matrizes(best["Y_test"], best["Y_pred"], cmap_greens, "Melhor Rodada")
     gerar_matrizes(worst["Y_test"], worst["Y_pred"], cmap_reds, "Pior Rodada")
 
