@@ -1,10 +1,10 @@
-import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.colors import ListedColormap
 import sys
 import os
+import cv2  # Import do OpenCV
 
 # --- Caminhos ---
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -12,254 +12,253 @@ parent_dir = os.path.abspath(os.path.join(script_dir, '..'))
 if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
-from neural_network import MultilayerPerceptron
 from Avaliador import Avaliador
-from Matriz_Confusao import Matriz_Confusao
+from Matriz_Confusao_MLP import Matriz_Confusao
+
+from neural_network import MultilayerPerceptron
 
 
 # ----------------------------------------------------------
-# Funções auxiliares (iguais ao ADALINE)
+# Função auxiliar para carregar dados (OpenCV)
+# (Sem alterações)
 # ----------------------------------------------------------
-def carregar_imagens_recfac(root_folder, size=(30, 30)):
+def carregar_imagens_recfac(root_folder, size=(15, 15)):
+    """
+    Carrega imagens da base RecFac usando OpenCV.
+    Converte para escala de cinza, redimensiona e achata.
+    """
     X_list, labels = [], []
-    valid_ext = {'.png'}
+    valid_ext = {'.png'} # Ajuste se tiver .jpg, .jpeg, etc.
+
+    # Verifica se o diretório raiz existe
+    if not os.path.isdir(root_folder):
+        raise RuntimeError(f"Diretório não encontrado: {root_folder}")
 
     for root, _, files in os.walk(root_folder):
         for fname in files:
             _, ext = os.path.splitext(fname)
             if ext.lower() not in valid_ext:
                 continue
+            
             path = os.path.join(root, fname)
+            # Pega o nome da pasta pai como label (ex: 'pessoa1')
             person = os.path.basename(os.path.dirname(path))
 
+            # Carrega em escala de cinza
             img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+            
             if img is None:
                 print(f"[AVISO] Não foi possível ler: {path}")
                 continue
+            
+            # Redimensiona para o tamanho padrão
             img = cv2.resize(img, size)
+            
+            # vetoor
             X_list.append(img.flatten().astype(np.float32))
             labels.append(person)
 
     if not X_list:
-        raise RuntimeError("Nenhuma imagem foi encontrada em RecFac/.")
-    X = np.vstack(X_list)
-    return X, labels
-
-
-def codificar_one_hot_bipolar(labels):
-    classes = sorted(list(set(labels)))
-    c_to_idx = {c: i for i, c in enumerate(classes)}
-    n_classes = len(classes)
-    Y = -1 * np.ones((len(labels), n_classes), dtype=int)
-    for i, label in enumerate(labels):
-        Y[i, c_to_idx[label]] = 1
-    return Y, c_to_idx, classes
-
+        raise RuntimeError(f"Nenhuma imagem {valid_ext} foi encontrada em {root_folder}/.")
+    
+    X_all = np.vstack(X_list)
+    y_labels = np.array(labels)
+    return X_all, y_labels
 
 # ----------------------------------------------------------
-# Main
+# CARREGAMENTO DOS DADOS (OpenCV - RecFac)
 # ----------------------------------------------------------
-if __name__ == "__main__":
-    ROOT = os.path.join(parent_dir, "RecFac")
-    IMG_SIZE = (30, 30)
-    R = 1
-    LR = 1e-3
-    MAX_EPOCH = 100
-    print("Carregando imagens da pasta RecFac...")
+print("Carregando imagens da base RecFac...")
+# O caminho 'RecFac/' funciona pois está no mesmo nível do main.py
+ROOT_FOLDER = os.path.join(parent_dir, "RecFac") 
 
-    # --- Carregar imagens e rótulos ---
-    X_raw, labels = carregar_imagens_recfac(ROOT, size=IMG_SIZE)
-    N, p = X_raw.shape
-    print(f"Total de imagens: {N}")
-    print(f"Tamanho das imagens: {IMG_SIZE[0]}x{IMG_SIZE[1]} = {p} neurônios de entrada")
+try:
+    X_all, y_labels_all = carregar_imagens_recfac(ROOT_FOLDER, size=(15, 15))
+except RuntimeError as e:
+    print(e)
+    print(f"ERRO: Verifique se a pasta '{ROOT_FOLDER}' existe e contém subpastas com imagens .png.")
+    sys.exit(1)
 
-    # --- Codificação bipolar one-hot ---
-    Y, label_to_idx, classes = codificar_one_hot_bipolar(labels)
-    n_classes = len(classes)
-    y_idx = np.array([label_to_idx[l] for l in labels])
-    print(f"Classes detectadas ({n_classes}): {list(range(n_classes))}")
+# ----------------------------------------------------------
+# ADAPTAÇÃO PARA CLASSIFICAÇÃO MULTICLASSE
+# ----------------------------------------------------------
+unique_labels = np.unique(y_labels_all)
+n_classes = len(unique_labels)
 
-    # --- Normalização global para [-1, 1] ---
-    X_norm = (X_raw / 127.5) - 1.0
+print(f"Detectadas {n_classes} classes: {unique_labels}")
 
-    resultados = []
-    metricas_acc = []
+# Criação de mapeamento label → índice
+label_to_idx = {label: idx for idx, label in enumerate(unique_labels)}
+y_idx = np.array([label_to_idx[l] for l in y_labels_all])
 
-    print(f"\nIniciando Monte Carlo com R = {R} rodadas...\n")
-    for r in range(R):
-        idx = np.random.permutation(N)
-        Xr = X_norm[idx, :]
-        Yr = Y[idx, :]
-        y_idx_r = y_idx[idx]
+# Codificação one-hot (para MLP)
+Y_one_hot = np.zeros((y_idx.size, n_classes))
+Y_one_hot[np.arange(y_idx.size), y_idx] = 1
 
-        split = int(0.8 * N)
-        X_treino, X_teste = Xr[:split], Xr[split:]
-        Y_train, Y_test = Yr[:split], Yr[split:]
-        y_true_test = y_idx_r[split:]
+X = X_all
+y = Y_one_hot 
 
-        # --- Normalização baseada no treino ---
-        min_treino = X_treino.min(axis=0)
-        max_treino = X_treino.max(axis=0)
-        denom = (max_treino - min_treino) + 1e-8
-        X_treino_norm = 2 * (X_treino - min_treino) / denom - 1
-        X_teste_norm = 2 * (X_teste - min_treino) / denom - 1
+if X.shape[0] == 0:
+     print(f"ERRO: Nenhum dado encontrado para as classes {label_1} e {label_minus_1}.")
+     sys.exit(1)
 
-        # --- Estrutura da rede ---
-        layer_dims = [p, 100, 50, n_classes]  # Exemplo: 2 camadas ocultas
+print(f"Total de {X.shape[0]} amostras (vetores de {X.shape[1]} features) carregadas.")
 
-        mlp = MultilayerPerceptron(
-            topology=layer_dims,
-            X_train=X_treino_norm.T,
-            Y_train=Y_train.T,
-            learning_rate=LR,
-            max_epoch=MAX_EPOCH
-        )
+N, p = X.shape
+# O plot inicial (scatter 2D) não se aplica a dados de imagem (alta dimensão)
 
-        mlp.fit()
-        Y_pred = mlp.predict(X_teste_norm.T)
+# ----------------------------------------------------------
+# SIMULAÇÃO DE MONTE CARLO
+# (Sem alterações)
+# ----------------------------------------------------------
 
-        # --- Converter saída contínua para bipolar ---
-        Y_pred_bin = np.where(Y_pred >= 0, 1, -1)
+metricas_acuracia = []
+metricas_sensibilidade = []
+metricas_especificidade = []
+metricas_precisao = []
+metricas_f1_score = []
+resultados = []
+R = 1 #TODO ajustar
 
-        # --- Converter para índices de classe ---
-        y_pred = np.argmax(Y_pred_bin, axis=0)
-        acuracia = np.mean(y_pred == y_true_test)
-        metricas_acc.append(acuracia)
-
-        resultados.append({
-            "acc": acuracia,
-            "Y_test": Y_test,
-            "Y_pred": Y_pred_bin,
-            "errors": mlp.errors_per_epoch
-        })
-
-        print(f"Rodada {r+1}/{R} concluída. Acurácia = {acuracia*100:.2f}%")
-
-    # --- Selecionar melhor e pior rodada ---
-    accs = np.array(metricas_acc)
-    best_idx = np.argmax(accs)
-    worst_idx = np.argmin(accs)
-    best = resultados[best_idx]
-    worst = resultados[worst_idx]
-
-    print(f"\nMelhor rodada ({best_idx+1}) -> Acurácia: {accs[best_idx]*100:.2f}%")
-    print(f"Pior rodada ({worst_idx+1}) -> Acurácia: {accs[worst_idx]*100:.2f}%")
-
-    # --- Matrizes de Confusão individuais (melhor e pior) ---
-    GREENS = ['#006045', '#009966', '#00d492', '#a4f4cf']
-    REDS = ['#a50036', '#ec003f', '#ff637e', '#ffccd3']
-    cmap_greens = ListedColormap(GREENS)
-    cmap_reds = ListedColormap(REDS)
-
-    def gerar_matrizes(Y_true, Y_pred, cmap, titulo):
-        fig, axes = plt.subplots(4, 5, figsize=(18, 12))
-        axes = axes.flatten()
-        for c in range(n_classes):
-            y_true_c = Y_true[:, c]
-            y_pred_c = Y_pred[:, c]
-            mc = Matriz_Confusao.conf_matriz(y_true_c, y_pred_c, labels=[1, -1])
-            mc_indices = np.array([[0, 1],
-                                   [2, 3]])
-            sns.heatmap(mc_indices, annot=mc, fmt='d', cmap=cmap, cbar=False,
-                        xticklabels=[1, -1], yticklabels=[1, -1], ax=axes[c])
-            axes[c].set_title(f"Classe {c+1}", fontsize=10)
-            axes[c].set_xlabel("Predito")
-            axes[c].set_ylabel("Verdadeiro")
-
-        plt.suptitle(f"Matrizes de Confusão - {titulo}", fontsize=14, fontweight='bold')
-        plt.tight_layout(rect=[0, 0, 1, 0.96])
-        plt.show()
-
-    gerar_matrizes(best["Y_test"], best["Y_pred"], cmap_greens, "Melhor Rodada")
-    gerar_matrizes(worst["Y_test"], worst["Y_pred"], cmap_reds, "Pior Rodada")
-
-    # ----------------------------------------------------------
-    # FUNÇÃO AUXILIAR PARA CURVAS DE APRENDIZADO
-    # ----------------------------------------------------------
-    def plotar_curva_aprendizado(resultados_rodada, n_classes, titulo_grafico, cor_plot):
-
-        all_errors = []
-        max_len = 0
-        
-        try:
-            # Itera sobre os 20 modelos treinados na rodada
-            for model in resultados_rodada["models"]:
-                
-                history = model.errors_per_epoch 
-                # ---------------------------------------------------
-
-                if not hasattr(model, 'errors_per_epoch'):
-                       print(f"O NOME DO MODELO É ADELE PARA OS ÍNTIMOS 🦄.")
-                       raise AttributeError("Atributo 'errors_per_epoch' não encontrado no modelo.")
-
-                all_errors.append(history)
-                if len(history) > max_len:
-                    max_len = len(history)
-                    
-        except AttributeError as e:
-            print(str(e))
-            print(f"Não foi possível gerar a curva de aprendizado para: {titulo_grafico}.\n")
-            return 
-        
-        
-        if max_len == 0:
-            print(f"Nenhum histórico de erro encontrado para: {titulo_grafico}.")
-            return
-
-        
-        padded_errors = np.zeros((n_classes, max_len))
-        
-        for i, history in enumerate(all_errors):
-            last_error = history[-1] if len(history) > 0 else 0
-            padded_errors[i, :len(history)] = history
-            padded_errors[i, len(history):] = last_error 
+print(f"\nIniciando simulação de Monte Carlo com {R} rodadas...")
+for r in range(R):
     
-        # Calcular média e desvio padrão entre os 20 modelos
-        mean_errors = np.mean(padded_errors, axis=0)
-        std_errors = np.std(padded_errors, axis=0)
+    idx = np.random.permutation(N)
+    Xr = X[idx,:]
+    yr = y[idx, :]
     
-        epochs = np.arange(1, max_len + 1)
+    # Particionamento (80% treino, 20% teste)
+    split_idx = int(N * 0.8)
+    X_treino = Xr[:split_idx, :]
+    y_treino = yr[:split_idx, :]
     
-        # Plotar o gráfico
-        plt.figure(figsize=(12, 7))
-        plt.plot(epochs, mean_errors, color=cor_plot, lw=2, label='Erro Quadrático Médio (MSE) - Média')
-        
-        # Plotar a banda de desvio padrão
-        plt.fill_between(epochs, 
-                         mean_errors - std_errors, 
-                         mean_errors + std_errors, 
-                         color=cor_plot, 
-                         alpha=0.2, 
-                         label='Desvio Padrão (± 1 std)')
-        
-        plt.title(f'Curva de Aprendizado Média ({titulo_grafico})', fontsize=16, fontweight='bold')
-        plt.xlabel('Época', fontsize=12)
-        plt.ylabel('Erro Quadrático Médio (MSE) - Escala Log', fontsize=12)
-        plt.legend(fontsize=11)
-        plt.grid(True, linestyle='--', alpha=0.6)
-        
-        # Usar escala logarítmica no eixo Y é bom para ver a convergência
-        plt.yscale('log')
-        
-        plt.tight_layout()
-        plt.show()
+    X_teste = Xr[split_idx:, :] 
+    y_teste = yr[split_idx:, :]
+    
+    # NORMALIZAÇÃO DOS DADOS [-1, 1] 
+    min_treino = X_treino.min(axis=0)
+    max_treino = X_treino.max(axis=0)
+    denominador = (max_treino - min_treino) + 1e-8
+    X_treino_norm = 2 * (X_treino - min_treino) / denominador - 1
+    X_teste_norm = 2 * (X_teste - min_treino) / denominador - 1
 
-    # ----------------------------------------------------------
-    # CURVAS DE APRENDIZADO - MELHOR E PIOR RODADA
-    # ----------------------------------------------------------
+    # FIM DA NORMALIZAÇÃO
     
-    # Plotar a curva da melhor rodada 
-    plotar_curva_aprendizado(
-        best, 
-        n_classes, 
-        f"Melhor Rodada - N° {best_idx+1}", 
-        GREENS[1] 
-    )
+    layer_dims = [X_treino.shape[1], 30]
     
-    # Plotar a curva da pior rodada 
-    plotar_curva_aprendizado(
-        worst, 
-        n_classes, 
-        f"Pior Rodada - N° {worst_idx+1}", 
-        REDS[1] 
-    )
+    ps = MultilayerPerceptron(topology=layer_dims, X_train=X_treino_norm.T, Y_train=y_treino.T, max_epoch=100, learning_rate=0.01)
+    ps.fit()
+      
+    y_pred = ps.predict(X_teste_norm.T)
+    y_pred_bin = np.where(y_pred >= 0, 1, -1)
+    
+    acc, sens, spec, prec, f1 = Avaliador.calcular_metricas(y_teste, y_pred_bin)
+
+    metricas_acuracia.append(acc)
+    metricas_sensibilidade.append(sens)
+    metricas_especificidade.append(spec)
+    metricas_precisao.append(prec)
+    metricas_f1_score.append(f1)
+    
+    resultados.append({
+        "acc": acc, "sens": sens, "spec": spec, "prec": prec, "f1": f1,
+        "y_true": y_teste.flatten(),
+        "y_pred": y_pred.flatten(), # Salva a saída real (antes de binarizar)
+        "errors": ps.errors_per_epoch
+    })
+    
+    if (r + 1) % 50 == 0 or (r + 1) == R:
+        print(f"Rodada {r + 1}/{R} concluída.")
+
+# ----------------------------------------------------------
+# ----- PLOTAGEM (Apenas Acurácia) -----
+# (Sem alterações na lógica de plotagem)
+# ----------------------------------------------------------
+
+metricas = ["acc"] # <-- Focado apenas na Acurácia, conforme pedido
+labels_plot = [f'{i} ({label})' for i, label in enumerate(unique_labels)]
+
+
+# Definição das cores
+GREENS = ['#006045', '#009966', '#00d492', '#a4f4cf']
+REDS = ['#a50036', '#ec003f', '#ff637e', '#ffccd3']
+cmap_greens = ListedColormap(GREENS)
+cmap_reds   = ListedColormap(REDS)
+mc_indices = np.array([[0, 1], [2, 3]])
+
+for metrica in metricas:
+    
+    # 1. Encontrar melhor e pior rodada
+    melhor = Avaliador.get_melhor(metrica, resultados)
+    pior = Avaliador.get_pior(metrica, resultados)
+
+    # 2. Preparar dados para Matriz de Confusão
+    y_true_melhor = melhor["y_true"].ravel()
+    y_pred_melhor = np.where(melhor["y_pred"].ravel() >= 0, 1, -1)
+    
+    y_true_pior = pior["y_true"].ravel()
+    y_pred_pior = np.where(pior["y_pred"].ravel() >= 0, 1, -1)
+
+    mc_melhor = Matriz_Confusao.conf_matriz(y_true_melhor, y_pred_melhor)
+    mc_pior = Matriz_Confusao.conf_matriz(y_true_pior, y_pred_pior)
+    
+    # 3. Plotar Matrizes de Confusão (Melhor x Pior)
+    fig_cm, (ax_cm_melhor, ax_cm_pior) = plt.subplots(1, 2, figsize=(16, 7))
+    
+    labels_plot = np.unique(np.concatenate((y_true_melhor, y_pred_melhor)))
+    sns.heatmap(mc_indices, annot=mc_melhor, fmt='d',
+            cmap=cmap_greens, cbar=False,
+            xticklabels=labels_plot, yticklabels=labels_plot)
+    ax_cm_melhor.set_title(f'Melhor {metrica.upper()} - Matriz de Confusão')
+    ax_cm_melhor.set_xlabel('Predito (Previsto)')
+    ax_cm_melhor.set_ylabel('Verdadeiro (Real)')
+    ax_cm_melhor.set_yticklabels(ax_cm_melhor.get_yticklabels(), rotation=0)
+
+    # sns.heatmap(mc_indices, annot=mc_pior, fmt='d',
+    #             cmap=cmap_reds, cbar=False, ax=ax_cm_pior,
+    #             xticklabels=labels_plot, yticklabels=labels_plot)
+    # ax_cm_pior.set_title(f'Pior {metrica.upper()} - Matriz de Confusão')
+    # ax_cm_pior.set_xlabel('Predito (Previsto)')
+    # ax_cm_pior.set_ylabel('Verdadeiro (Real)')
+    # ax_cm_pior.set_yticklabels(ax_cm_pior.get_yticklabels(), rotation=0)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # 4. Preparar Curvas de Aprendizado
+    errors_melhor = melhor["errors"] if melhor["errors"] is not None else [0]
+    errors_pior = pior["errors"] if pior["errors"] is not None else [0]
+    
+    # 5. Plotar Curvas de Aprendizado (Melhor x Pior)
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+    axes[0].plot(errors_melhor, color=GREENS[1], lw=2)
+    axes[0].set_title(f"Melhor {metrica.upper()}")
+    axes[0].set_xlabel("Época")
+    axes[0].set_ylabel("Erros por época")
+    axes[0].grid(True, linestyle='--', alpha=0.6)
+    axes[0].set_yscale('log')
+
+    axes[1].plot(errors_pior, color=REDS[1], lw=2)
+    axes[1].set_title(f"Pior {metrica.upper()}")
+    axes[1].set_xlabel("Época")
+    axes[1].set_ylabel("Erros por época")
+    axes[1].grid(True, linestyle='--', alpha=0.6)
+    axes[1].set_yscale('log')
+    
+    plt.suptitle(f"Curvas de Aprendizado - {metrica.upper()}", fontsize=14, fontweight='bold')
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.show()
+
+# ----------------------------------------------------------
+# --- Finalização (Imprime estatísticas de todas as métricas) ---
+# ----------------------------------------------------------
+print("\nSimulação concluída.")
+print("Estatísticas gerais (todas as rodadas):")
+Avaliador.print_stat("Acurácia", metricas_acuracia)
+Avaliador.print_stat("Sensibilidade", metricas_sensibilidade)
+Avaliador.print_stat("Especificidade", metricas_especificidade)
+Avaliador.print_stat("Precisão", metricas_precisao)
+Avaliador.print_stat("F1-Score", metricas_f1_score)
+
+# plt.show() # Garante que todos os plots abertos sejam exibidos
