@@ -12,7 +12,7 @@ parent_dir = os.path.abspath(os.path.join(script_dir, '..'))
 if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
-from Adaline import ADALINE
+from Perceptron import Perceptron
 from Avaliador import Avaliador
 from Matriz_Confusao import Matriz_Confusao
 
@@ -62,7 +62,7 @@ def codificar_one_hot_bipolar(labels):
 if __name__ == "__main__":
     ROOT = os.path.join(parent_dir, "RecFac")
     IMG_SIZE = (40, 40)
-    R = 100 #TODO ajustar p 10 ou 100
+    R = 1 #TODO ajustar p 10 ou 100
     LR = 0.001
     MAX_EPOCH = 300
     TOL = 1e-6
@@ -101,7 +101,7 @@ if __name__ == "__main__":
         models = []
         for c in range(n_classes):
             y_c = Y_train[:, c].reshape(-1, 1)
-            model = ADALINE(X_train_T, y_c, learning_rate=LR, max_epoch=MAX_EPOCH, tol=TOL, plot=False)
+            model = Perceptron(X_train_T, y_c, learning_rate=LR, max_epoch=MAX_EPOCH, plot=False)
             model.fit()
             models.append(model)
 
@@ -117,7 +117,11 @@ if __name__ == "__main__":
         y_pred = idx_pred
         acuracia = np.mean(y_pred == y_true_test)
         accs.append(acuracia)
-
+        print("--"*20)
+        print(y_pred)
+        print("--"*20)
+        print(y_true_test)
+        print("--"*20)
         resultados.append({
             "acc": acuracia,
             "models": models,
@@ -172,7 +176,7 @@ if __name__ == "__main__":
         plt.tight_layout(rect=[0, 0, 1, 0.96])
         plt.show()
 
-        #print(f"Soma total ({titulo}): {soma_total} (deve ser 640)") Qual o intuito ?
+        # print(f"Soma total ({titulo}): {soma_total} (deve ser 640)") 
 
     # --- Plotar as 20 melhores (verde) e 20 piores (vermelho)
     gerar_matrizes(best["Y_test"], best["Y_pred"], cmap_greens, "Melhor Rodada")
