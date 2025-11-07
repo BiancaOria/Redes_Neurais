@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from Perceptron_Mult import Perceptron_Mult
+from neural_network import MultilayerPerceptron
 import seaborn as sns
 from matplotlib.colors import ListedColormap
 import sys
@@ -57,7 +58,7 @@ metricas_especificidade = []
 metricas_precisao = []
 metricas_f1_score = []
 resultados = []
-R = 1 #ajustar
+R = 5 #TODO ajustar
 
 print(f"Iniciando simulação de Monte Carlo com {R} rodadas...")
 for r in range(R):
@@ -89,15 +90,20 @@ for r in range(R):
  
     # FIM DA NORMALIZAÇÃO
     
-    layer_dims = [X_treino.shape[1], 2, 5, 1]
-    ps = Perceptron_Mult(layer_dims, X_treino_norm.T, y_treino, plot=True, max_epoch=100,learning_rate=0.01)
+    layer_dims = [X_treino.shape[1], 5, 2, 1] # [X_treino.shape[1],1,5,1]
+    ps = MultilayerPerceptron(topology=layer_dims, X_train=X_treino_norm.T, Y_train=y_treino.T, max_epoch=100,learning_rate=0.01)
     ps.fit()
-    
-    
+     
     
     y_pred = ps.predict(X_teste_norm.T)
+
+    #print(y_pred)
+
+    y_pred_bin = np.where(y_pred >= 0, 1, -1)
+    acc, sens, spec, prec, f1 = Avaliador.calcular_metricas(y_teste, y_pred_bin)
+
     
-    acc, sens, spec, prec, f1 = Avaliador.calcular_metricas(y_teste, y_pred)
+    # acc, sens, spec, prec, f1 = Avaliador.calcular_metricas(y_teste, y_pred)
     
     metricas_acuracia.append(acc)
     metricas_sensibilidade.append(sens)
@@ -106,6 +112,7 @@ for r in range(R):
     metricas_f1_score.append(f1)
     resultados.append({
         "acc": acc, "sens": sens, "spec": spec, "prec": prec, "f1": f1,
+        "y_pred": y_pred_bin,  # <-- binarizado
         "y_true": y_teste.flatten(), "y_pred": y_pred.flatten(),
         "errors": ps.errors_per_epoch
     })
@@ -121,9 +128,20 @@ for metrica in metricas:
     
     melhor= Avaliador.get_melhor(metrica,resultados)
     pior = Avaliador.get_pior(metrica,resultados)
+
+    y_true_classes = melhor["y_true"]
+    y_pred_classes = np.where(melhor["y_pred"] >= 0, 1, -1)
+
     
-    mc_melhor = Matriz_Confusao.conf_matriz(melhor["y_true"], melhor["y_pred"])
-    mc_pior = Matriz_Confusao.conf_matriz(pior["y_true"], pior["y_pred"])
+    y_true_pior = pior["y_true"].ravel()
+    y_pred_pior = np.where(pior["y_pred"].ravel() >= 0, 1, -1)
+
+
+
+    
+    mc_melhor = Matriz_Confusao.conf_matriz(y_true_classes, y_pred_classes)
+    mc_pior = Matriz_Confusao.conf_matriz(y_true_pior, y_pred_pior)
+    #mc_pior = Matriz_Confusao.conf_matriz(pior["y_true"], pior["y_pred"])
     
     # 3. Criar a figura com 2 subplots (1 linha, 2 colunas)
     fig_cm, (ax_cm_melhor, ax_cm_pior) = plt.subplots(1, 2, figsize=(14, 6))
