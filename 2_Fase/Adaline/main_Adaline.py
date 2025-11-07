@@ -62,7 +62,7 @@ def codificar_one_hot_bipolar(labels):
 if __name__ == "__main__":
     ROOT = os.path.join(parent_dir, "RecFac")
     IMG_SIZE = (30, 30)
-    R = 1
+    R = 10 #TODO aaa
     LR = 1e-3
     MAX_EPOCH = 1000
     TOL = 1e-12
