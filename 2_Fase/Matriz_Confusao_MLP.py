@@ -1,36 +1,37 @@
 import numpy as np
 
 class Matriz_Confusao:
+    """
+    Gera uma matriz de confusão N x N para classificação multiclasse.
+    """
     @staticmethod
-    def conf_matriz(y_true, y_pred):
+    def conf_matriz(y_true, y_pred, labels=None):
         
-        y_true = np.where(np.array(y_true) >= 0, 1, -1)
-        y_pred = np.where(np.array(y_pred) >= 0, 1, -1)
+        y_true = np.array(y_true)
+        y_pred = np.array(y_pred)
 
-        # Inicializa contadores
-        count_VP = 0  # Verdadeiro Positivo
-        count_VN = 0  # Verdadeiro Negativo
-        count_FP = 0  # Falso Positivo
-        count_FN = 0  # Falso Negativo
+        # Verifica tamanhos
+        if y_true.shape[0] != y_pred.shape[0]:
+            raise ValueError(f"Tamanhos incompatíveis: y_true ({y_true.shape}) e y_pred ({y_pred.shape})")
 
-        # Percorre as listas
-        for i in range(len(y_true)):
-            if y_true[i] == 1 and y_pred[i] == 1:
-                count_VP += 1
-            elif y_true[i] == -1 and y_pred[i] == -1:
-                count_VN += 1
-            elif y_true[i] == -1 and y_pred[i] == 1:
-                count_FP += 1
-            elif y_true[i] == 1 and y_pred[i] == -1:
-                count_FN += 1
+        # Descobre labels se não forem fornecidos
+        if labels is None:
+            labels = sorted(list(set(y_true) | set(y_pred)))
 
-        # Cria matriz de confusão 2x2
-        # Ordem: [ [VP, FN],
-        #          [FP, VN] ]
-        mc = np.array([
-            [count_VP, count_FN],
-            [count_FP, count_VN]
-        ])
+        n_labels = len(labels)
 
-        # Retorna tudo
-        return mc, count_VP, count_VN, count_FP, count_FN
+        # Inicializa matriz N×N
+        mc = np.zeros((n_labels, n_labels), dtype=int)
+
+        # Mapa label → índice (para acesso rápido)
+        label_to_index = {label: idx for idx, label in enumerate(labels)}
+
+        # Percorre amostras e contabiliza
+        for yt, yp in zip(y_true, y_pred):
+            if yt in label_to_index and yp in label_to_index:
+                i = label_to_index[yt]  # índice do verdadeiro
+                j = label_to_index[yp]  # índice do predito
+                mc[i, j] += 1
+            # caso contrário, ignora (pode ocorrer se houver valores fora da faixa)
+
+        return mc, labels

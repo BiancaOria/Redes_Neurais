@@ -58,7 +58,7 @@ metricas_especificidade = []
 metricas_precisao = []
 metricas_f1_score = []
 resultados = []
-R = 5 #TODO ajustar
+R = 50 #TODO ajustar
 
 print(f"Iniciando simulação de Monte Carlo com {R} rodadas...")
 for r in range(R):
@@ -90,7 +90,7 @@ for r in range(R):
  
     # FIM DA NORMALIZAÇÃO
     
-    layer_dims = [X_treino.shape[1], 5, 2, 1] # [X_treino.shape[1],1,5,1]
+    layer_dims = [X_treino.shape[1], 2, 1] # [X_treino.shape[1],1,5,1]
     ps = MultilayerPerceptron(topology=layer_dims, X_train=X_treino_norm.T, Y_train=y_treino.T, max_epoch=100,learning_rate=0.01)
     ps.fit()
      
@@ -135,8 +135,6 @@ for metrica in metricas:
     
     y_true_pior = pior["y_true"].ravel()
     y_pred_pior = np.where(pior["y_pred"].ravel() >= 0, 1, -1)
-
-
 
     
     mc_melhor = Matriz_Confusao.conf_matriz(y_true_classes, y_pred_classes)
