@@ -2,36 +2,54 @@ import numpy as np
 
 class Matriz_Confusao:
     """
-    Gera uma matriz de confusão N x N para classificação multiclasse.
+    Matriz de confusão N x N e versão binária 2x2 (TP, FN, FP, TN) usando lógica one-vs-all.
     """
+
     @staticmethod
-    def conf_matriz(y_true, y_pred, labels=None):
-        
+    def conf_matriz(y_true, y_pred, labels=None, binarizar=False):
         y_true = np.array(y_true)
         y_pred = np.array(y_pred)
 
-        # Verifica tamanhos
         if y_true.shape[0] != y_pred.shape[0]:
             raise ValueError(f"Tamanhos incompatíveis: y_true ({y_true.shape}) e y_pred ({y_pred.shape})")
 
-        # Descobre labels se não forem fornecidos
+        # Matriz N×N clássica
+        if not binarizar:
+            if labels is None:
+                labels = sorted(list(set(y_true) | set(y_pred)))
+            n_labels = len(labels)
+            mc = np.zeros((n_labels, n_labels), dtype=int)
+            label_to_index = {label: idx for idx, label in enumerate(labels)}
+
+            for yt, yp in zip(y_true, y_pred):
+                i = label_to_index[yt]
+                j = label_to_index[yp]
+                mc[i, j] += 1
+            return mc, labels
+
+        # Matriz 2x2 binária agregando multiclasses (one-vs-all)
         if labels is None:
             labels = sorted(list(set(y_true) | set(y_pred)))
 
-        n_labels = len(labels)
+        TP_total = 0
+        FN_total = 0
+        FP_total = 0
+        TN_total = 0
 
-        # Inicializa matriz N×N
-        mc = np.zeros((n_labels, n_labels), dtype=int)
+        for label in labels:
+            y_true_bin = np.where(y_true == label, 1, -1)
+            y_pred_bin = np.where(y_pred == label, 1, -1)
 
-        # Mapa label → índice (para acesso rápido)
-        label_to_index = {label: idx for idx, label in enumerate(labels)}
+            TP = np.sum((y_true_bin == 1) & (y_pred_bin == 1))
+            FN = np.sum((y_true_bin == 1) & (y_pred_bin == -1))
+            FP = np.sum((y_true_bin == -1) & (y_pred_bin == 1))
+            TN = np.sum((y_true_bin == -1) & (y_pred_bin == -1))
 
-        # Percorre amostras e contabiliza
-        for yt, yp in zip(y_true, y_pred):
-            if yt in label_to_index and yp in label_to_index:
-                i = label_to_index[yt]  # índice do verdadeiro
-                j = label_to_index[yp]  # índice do predito
-                mc[i, j] += 1
-            # caso contrário, ignora (pode ocorrer se houver valores fora da faixa)
+            TP_total += TP
+            FN_total += FN
+            FP_total += FP
+            TN_total += TN
 
-        return mc, labels
+        mc_bin = np.array([[TP_total, FN_total],
+                           [FP_total, TN_total]], dtype=int)
+        return mc_bin, ['Positivo', 'Negativo']

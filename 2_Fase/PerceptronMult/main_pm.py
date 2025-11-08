@@ -4,7 +4,7 @@ import seaborn as sns
 from matplotlib.colors import ListedColormap
 import sys
 import os
-import cv2  # Import do OpenCV
+import cv2  
 
 # --- Caminhos ---
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -12,7 +12,7 @@ parent_dir = os.path.abspath(os.path.join(script_dir, '..'))
 if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
-from Avaliador import Avaliador
+from Avaliador_MLP import Avaliador
 from Matriz_Confusao_MLP import Matriz_Confusao
 
 from neural_network import MultilayerPerceptron
@@ -22,7 +22,7 @@ from neural_network import MultilayerPerceptron
 # Função auxiliar para carregar dados (OpenCV)
 # (Sem alterações)
 # ----------------------------------------------------------
-def carregar_imagens_recfac(root_folder, size=(15, 15)):
+def carregar_imagens_recfac(root_folder, size=(30, 30)):
     """
     Carrega imagens da base RecFac usando OpenCV.
     Converte para escala de cinza, redimensiona e achata.
@@ -73,7 +73,7 @@ print("Carregando imagens da base RecFac...")
 ROOT_FOLDER = os.path.join(parent_dir, "RecFac") 
 
 try:
-    X_all, y_labels_all = carregar_imagens_recfac(ROOT_FOLDER, size=(15, 15))
+    X_all, y_labels_all = carregar_imagens_recfac(ROOT_FOLDER, size=(30, 30))
 except RuntimeError as e:
     print(e)
     print(f"ERRO: Verifique se a pasta '{ROOT_FOLDER}' existe e contém subpastas com imagens .png.")
@@ -113,12 +113,8 @@ N, p = X.shape
 # ----------------------------------------------------------
 
 metricas_acuracia = []
-metricas_sensibilidade = []
-metricas_especificidade = []
-metricas_precisao = []
-metricas_f1_score = []
 resultados = []
-R = 1 #TODO ajustar
+R = 10 #TODO ajustar
 
 print(f"\nIniciando simulação de Monte Carlo com {R} rodadas...")
 for r in range(R):
@@ -144,7 +140,7 @@ for r in range(R):
 
     # FIM DA NORMALIZAÇÃO
     
-    layer_dims = [X_treino.shape[1], 30]
+    layer_dims = [X_treino.shape[1], 500, 300, 100, 50]
     
     ps = MultilayerPerceptron(topology=layer_dims, X_train=X_treino_norm.T, Y_train=y_treino.T, max_epoch=100, learning_rate=0.01)
     ps.fit()
@@ -169,16 +165,13 @@ for r in range(R):
     # As métricas (acc, sens, etc.) aqui podem estar erradas para multiclasse.
     # O código abaixo é mantido para não quebrar, mas foca na matriz de confusão.
     y_pred_bin = np.where(y_pred_scores >= 0, 1, -1)
-    acc, sens, spec, prec, f1 = Avaliador.calcular_metricas(y_teste, y_pred_bin) # Isso ainda compara (one-hot) com (binário)
+    acc = Avaliador.calcular_metricas(y_teste, y_pred_bin) # Isso ainda compara (one-hot) com (binário)
 
     metricas_acuracia.append(acc) # TODO: Idealmente, 'acc' deveria ser recalculada
-    metricas_sensibilidade.append(sens)
-    metricas_especificidade.append(spec)
-    metricas_precisao.append(prec)
-    metricas_f1_score.append(f1)
-
+   
+    
     resultados.append({
-        "acc": acc, "sens": sens, "spec": spec, "prec": prec, "f1": f1,
+        "acc": acc,
         # --- !! MUDANÇA CRÍTICA !! ---
         # Salvar os ÍNDICES, não os vetores/scores achatados
         "y_true": y_teste_indices, # AGORA é (n_samples,)
@@ -224,31 +217,37 @@ for metrica in metricas:
     labels_indices = list(range(n_classes))
 
     # A função agora retorna a matriz E os labels que ela usou
-    mc_melhor, _ = Matriz_Confusao.conf_matriz(y_true_melhor, y_pred_melhor, labels=labels_indices)
-    mc_pior, _ = Matriz_Confusao.conf_matriz(y_true_pior, y_pred_pior, labels=labels_indices)
-    
-     # 3. Plotar Matrizes de Confusão (Melhor x Pior)
-    fig_cm, (ax_cm_melhor, ax_cm_pior) = plt.subplots(1, 2, figsize=(16, 7))
-    
-    # Usar os labels de string (ex: 'pessoa1') que lemos no início
-    labels_plot = unique_labels 
- 
-    # Plot da MELHOR matriz (agora N x N)
-    sns.heatmap(mc_melhor, annot=True, fmt='d',cmap=cmap_greens, cbar=False, ax=ax_cm_melhor, xticklabels=labels_plot, yticklabels=labels_plot)
-    ax_cm_melhor.set_title(f'Melhor {metrica.upper()} - Matriz de Confusão')
-    ax_cm_melhor.set_xlabel('Predito (Previsto)')
-    ax_cm_melhor.set_ylabel('Verdadeiro (Real)')
-    ax_cm_melhor.set_yticklabels(ax_cm_melhor.get_yticklabels(), rotation=0)
+    # Gera matriz N×N e também reduzida 2×2
+    mc_melhor_full, _ = Matriz_Confusao.conf_matriz(y_true_melhor, y_pred_melhor, labels=labels_indices)
+    mc_pior_full, _   = Matriz_Confusao.conf_matriz(y_true_pior, y_pred_pior, labels=labels_indices)
 
-    # Plot da PIOR matriz (agora N x N)
-    sns.heatmap(mc_pior, annot=True, fmt='d',cmap=cmap_reds, cbar=False, ax=ax_cm_pior, xticklabels=labels_plot, yticklabels=labels_plot)
-    ax_cm_pior.set_title(f'Pior {metrica.upper()} - Matriz de Confusão')
-    ax_cm_pior.set_xlabel('Predito (Previsto)')
-    ax_cm_pior.set_ylabel('Verdadeiro (Real)')
-    ax_cm_pior.set_yticklabels(ax_cm_pior.get_yticklabels(), rotation=0)
+    # Matriz 2×2 agregada (VP, VN, FP, FN)
+    mc_melhor, _ = Matriz_Confusao.conf_matriz(y_true_melhor, y_pred_melhor, labels=labels_indices, binarizar=True)
+    mc_pior, _   = Matriz_Confusao.conf_matriz(y_true_pior, y_pred_pior, labels=labels_indices, binarizar=True)
     
+    # 3. Plotar Matrizes 2x2 (Melhor x Pior)
+    fig_cm, (ax_cm_melhor, ax_cm_pior) = plt.subplots(1, 2, figsize=(10, 5))
+
+    # Labels da 2x2
+    labels_bin = ['Positivo', 'Negativo']
+
+    mc_indices = np.array([[0, 1],[2, 3]])
+
+    sns.heatmap(mc_indices, annot=mc_melhor, fmt='d', cmap=cmap_greens, cbar=False,
+                xticklabels=labels_bin, yticklabels=labels_bin, ax=ax_cm_melhor)
+    ax_cm_melhor.set_title(f'Melhor {metrica.upper()}')
+    ax_cm_melhor.set_xlabel('Predito')
+    ax_cm_melhor.set_ylabel('Verdadeiro')
+
+    sns.heatmap(mc_indices, annot=mc_pior, fmt='d', cmap=cmap_reds, cbar=False,
+                xticklabels=labels_bin, yticklabels=labels_bin, ax=ax_cm_pior)
+    ax_cm_pior.set_title(f'Pior {metrica.upper()}')
+    ax_cm_pior.set_xlabel('Predito')
+    ax_cm_pior.set_ylabel('Verdadeiro')
+
     plt.tight_layout()
     plt.show()
+
     
     # 4. Preparar Curvas de Aprendizado
     errors_melhor = melhor["errors"] if melhor["errors"] is not None else [0]
@@ -283,4 +282,3 @@ print("Estatísticas gerais (todas as rodadas):")
 Avaliador.print_stat("Acurácia", metricas_acuracia)
 
 
-# plt.show() # Garante que todos os plots abertos sejam exibidos
