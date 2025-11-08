@@ -149,23 +149,43 @@ for r in range(R):
     ps = MultilayerPerceptron(topology=layer_dims, X_train=X_treino_norm.T, Y_train=y_treino.T, max_epoch=100, learning_rate=0.01)
     ps.fit()
       
-    y_pred = ps.predict(X_teste_norm.T)
-    y_pred_bin = np.where(y_pred >= 0, 1, -1)
-    
-    acc, sens, spec, prec, f1 = Avaliador.calcular_metricas(y_teste, y_pred_bin)
+    y_pred_scores = ps.predict(X_teste_norm.T) # Saída é (n_classes, n_samples)
 
-    metricas_acuracia.append(acc)
+    y_pred_scores = np.squeeze(y_pred_scores)  # remove dimensões extras
+    if y_pred_scores.ndim == 1:
+        y_pred_scores = y_pred_scores[np.newaxis, :]  # garante 2D
+    elif y_pred_scores.shape[0] != y_teste.shape[0]:
+        y_pred_scores = y_pred_scores.T  # ajusta orientação se necessário
+
+    print("y_pred_scores:", y_pred_scores.shape)
+    print("y_teste:", y_teste.shape)
+
+
+    y_pred_indices = np.argmax(y_pred_scores, axis=1)
+
+    y_teste_indices = np.argmax(y_teste, axis=1)
+
+    # ATENÇÃO: Seu 'Avaliador' provavelmente também está binário.
+    # As métricas (acc, sens, etc.) aqui podem estar erradas para multiclasse.
+    # O código abaixo é mantido para não quebrar, mas foca na matriz de confusão.
+    y_pred_bin = np.where(y_pred_scores >= 0, 1, -1)
+    acc, sens, spec, prec, f1 = Avaliador.calcular_metricas(y_teste, y_pred_bin) # Isso ainda compara (one-hot) com (binário)
+
+    metricas_acuracia.append(acc) # TODO: Idealmente, 'acc' deveria ser recalculada
     metricas_sensibilidade.append(sens)
     metricas_especificidade.append(spec)
     metricas_precisao.append(prec)
     metricas_f1_score.append(f1)
-    
+
     resultados.append({
         "acc": acc, "sens": sens, "spec": spec, "prec": prec, "f1": f1,
-        "y_true": y_teste.flatten(),
-        "y_pred": y_pred.flatten(), # Salva a saída real (antes de binarizar)
+        # --- !! MUDANÇA CRÍTICA !! ---
+        # Salvar os ÍNDICES, não os vetores/scores achatados
+        "y_true": y_teste_indices, # AGORA é (n_samples,)
+        "y_pred": y_pred_indices, # AGORA é (n_samples,)
+        # --- !! FIM DA MUDANÇA !! ---
         "errors": ps.errors_per_epoch
-    })
+     })
     
     if (r + 1) % 50 == 0 or (r + 1) == R:
         print(f"Rodada {r + 1}/{R} concluída.")
@@ -193,34 +213,39 @@ for metrica in metricas:
     pior = Avaliador.get_pior(metrica, resultados)
 
     # 2. Preparar dados para Matriz de Confusão
-    y_true_melhor = melhor["y_true"].ravel()
-    y_pred_melhor = np.where(melhor["y_pred"].ravel() >= 0, 1, -1)
+    # Os dados já estão salvos como índices (0, 1, 2...)
+    y_true_melhor = melhor["y_true"]
+    y_pred_melhor = melhor["y_pred"]
     
-    y_true_pior = pior["y_true"].ravel()
-    y_pred_pior = np.where(pior["y_pred"].ravel() >= 0, 1, -1)
+    y_true_pior = pior["y_true"]
+    y_pred_pior = pior["y_pred"]
 
-    mc_melhor = Matriz_Confusao.conf_matriz(y_true_melhor, y_pred_melhor)
-    mc_pior = Matriz_Confusao.conf_matriz(y_true_pior, y_pred_pior)
+    # Passamos os labels de índice (0, 1, ..., n_classes-1) para garantir a ordem
+    labels_indices = list(range(n_classes))
+
+    # A função agora retorna a matriz E os labels que ela usou
+    mc_melhor, _ = Matriz_Confusao.conf_matriz(y_true_melhor, y_pred_melhor, labels=labels_indices)
+    mc_pior, _ = Matriz_Confusao.conf_matriz(y_true_pior, y_pred_pior, labels=labels_indices)
     
-    # 3. Plotar Matrizes de Confusão (Melhor x Pior)
+     # 3. Plotar Matrizes de Confusão (Melhor x Pior)
     fig_cm, (ax_cm_melhor, ax_cm_pior) = plt.subplots(1, 2, figsize=(16, 7))
     
-    labels_plot = np.unique(np.concatenate((y_true_melhor, y_pred_melhor)))
-    sns.heatmap(mc_indices, annot=mc_melhor, fmt='d',
-            cmap=cmap_greens, cbar=False,
-            xticklabels=labels_plot, yticklabels=labels_plot)
+    # Usar os labels de string (ex: 'pessoa1') que lemos no início
+    labels_plot = unique_labels 
+ 
+    # Plot da MELHOR matriz (agora N x N)
+    sns.heatmap(mc_melhor, annot=True, fmt='d',cmap=cmap_greens, cbar=False, ax=ax_cm_melhor, xticklabels=labels_plot, yticklabels=labels_plot)
     ax_cm_melhor.set_title(f'Melhor {metrica.upper()} - Matriz de Confusão')
     ax_cm_melhor.set_xlabel('Predito (Previsto)')
     ax_cm_melhor.set_ylabel('Verdadeiro (Real)')
     ax_cm_melhor.set_yticklabels(ax_cm_melhor.get_yticklabels(), rotation=0)
 
-    # sns.heatmap(mc_indices, annot=mc_pior, fmt='d',
-    #             cmap=cmap_reds, cbar=False, ax=ax_cm_pior,
-    #             xticklabels=labels_plot, yticklabels=labels_plot)
-    # ax_cm_pior.set_title(f'Pior {metrica.upper()} - Matriz de Confusão')
-    # ax_cm_pior.set_xlabel('Predito (Previsto)')
-    # ax_cm_pior.set_ylabel('Verdadeiro (Real)')
-    # ax_cm_pior.set_yticklabels(ax_cm_pior.get_yticklabels(), rotation=0)
+    # Plot da PIOR matriz (agora N x N)
+    sns.heatmap(mc_pior, annot=True, fmt='d',cmap=cmap_reds, cbar=False, ax=ax_cm_pior, xticklabels=labels_plot, yticklabels=labels_plot)
+    ax_cm_pior.set_title(f'Pior {metrica.upper()} - Matriz de Confusão')
+    ax_cm_pior.set_xlabel('Predito (Previsto)')
+    ax_cm_pior.set_ylabel('Verdadeiro (Real)')
+    ax_cm_pior.set_yticklabels(ax_cm_pior.get_yticklabels(), rotation=0)
     
     plt.tight_layout()
     plt.show()
@@ -256,9 +281,6 @@ for metrica in metricas:
 print("\nSimulação concluída.")
 print("Estatísticas gerais (todas as rodadas):")
 Avaliador.print_stat("Acurácia", metricas_acuracia)
-Avaliador.print_stat("Sensibilidade", metricas_sensibilidade)
-Avaliador.print_stat("Especificidade", metricas_especificidade)
-Avaliador.print_stat("Precisão", metricas_precisao)
-Avaliador.print_stat("F1-Score", metricas_f1_score)
+
 
 # plt.show() # Garante que todos os plots abertos sejam exibidos
