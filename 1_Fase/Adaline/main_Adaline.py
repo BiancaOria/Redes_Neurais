@@ -67,7 +67,7 @@ for r in range(R):
     yr = y[idx, :]
     
 
-    # Particionamento do conjunto de dados (80% treino, 20% teste)
+    # particionamento do conjunto de dados (80% treino, 20% teste)
     split_idx = int(N * 0.8)
     X_treino = Xr[:split_idx, :]
     y_treino = yr[:split_idx, :]
@@ -111,7 +111,7 @@ for r in range(R):
     if (r + 1) % 50 == 0:
         print(f"Rodada {r + 1}/{R} concluída.")
         
-# ----- MATRIZ DE CONFUSÃO -----
+#  MATRIZ DE CONFUSÃO 
 metricas = ["acc", "sens", "spec", "prec", "f1"]
 labels_plot = ['Classe 1', 'Classe -1']
 
@@ -123,23 +123,18 @@ for metrica in metricas:
     mc_melhor = Matriz_Confusao.conf_matriz(melhor["y_true"], melhor["y_pred"])
     mc_pior = Matriz_Confusao.conf_matriz(pior["y_true"], pior["y_pred"])
     
-    # 3. Criar a figura com 2 subplots (1 linha, 2 colunas)
     fig_cm, (ax_cm_melhor, ax_cm_pior) = plt.subplots(1, 2, figsize=(14, 6))
 
     GREENS = ['#006045', '#009966', '#00d492', '#a4f4cf']
 
     REDS = ['#a50036', '#ec003f', '#ff637e', '#ffccd3']
     
-    # Cria colormaps fixos
     cmap_greens = ListedColormap(GREENS)
     cmap_reds   = ListedColormap(REDS)
 
-    # Normaliza os valores da matriz pra índices 0–3
-    # Assim cada quadrado pega uma cor específica
     mc_indices = np.array([[0, 1],
                         [2, 3]])
 
-    # Plotar "Melhor"
     sns.heatmap(mc_indices, annot=mc_melhor, fmt='d',
                 cmap=cmap_greens, cbar=False, ax=ax_cm_melhor,
                 xticklabels=labels_plot, yticklabels=labels_plot)
@@ -148,7 +143,6 @@ for metrica in metricas:
     ax_cm_melhor.set_ylabel('Verdadeiro (Real)')
     ax_cm_melhor.set_yticklabels(ax_cm_melhor.get_yticklabels(), rotation=0)
 
-    # Plotar "Pior"
     sns.heatmap(mc_indices, annot=mc_pior, fmt='d',
                 cmap=cmap_reds, cbar=False, ax=ax_cm_pior,
                 xticklabels=labels_plot, yticklabels=labels_plot)
@@ -159,36 +153,33 @@ for metrica in metricas:
 
     
     plt.tight_layout()
-    plt.show() # Mostra a figura das matrizes
+    plt.show()     
+
+    #  CURVA DE APRENDIZADO 
     
-    # ----- CURVA DE APRENDIZADO -----
-    
-    # Garante que 'errors' não é None
     errors_melhor = melhor["errors"] if melhor["errors"] is not None else [0]
     errors_pior = pior["errors"] if pior["errors"] is not None else [0]
-    # --- CURVAS DE APRENDIZADO (Melhor x Pior) ---
+    #CURVAS DE APRENDIZADO (Melhor x Pior) 
     fig, axes = plt.subplots(1, 2, figsize=(12, 4))  # 1 linha, 2 colunas
 
-    # --- Subgráfico 1: Melhor ---
+    # Melhor 
     axes[0].plot(errors_melhor, color=GREENS[1])
     axes[0].set_title(f"Melhor {metrica.upper()}")
     axes[0].set_ylabel("EQM (Erro Quadrático Médio)")
     axes[0].set_xlabel("Época")
     axes[0].grid(True)
 
-    # --- Subgráfico 2: Pior ---
+    # Pior 
     axes[1].plot(errors_pior, color=REDS[1])
     axes[1].set_title(f"Pior {metrica.upper()}")
     axes[1].set_ylabel("EQM (Erro Quadrático Médio)")
     axes[1].set_xlabel("Época")
     axes[1].grid(True)
 
-    # Ajustes finais
     plt.suptitle(f"Curvas de Aprendizado - {metrica.upper()}", fontsize=14, fontweight='bold')
     plt.tight_layout(rect=[0, 0, 1, 0.95])  # Deixa espaço para o título
     plt.show()
 
-# --- Finalização (sem alterações) ---
 plt.show()
 plt.show(block=True) 
 print("\nSimulação concluída.")

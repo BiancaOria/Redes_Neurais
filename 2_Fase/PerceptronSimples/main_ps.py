@@ -6,7 +6,6 @@ from matplotlib.colors import ListedColormap
 import sys
 import os
 
-# --- Caminhos ---
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(script_dir, '..'))
 if parent_dir not in sys.path:
@@ -17,9 +16,6 @@ from Avaliador import Avaliador
 from Matriz_Confusao import Matriz_Confusao
 
 
-# ----------------------------------------------------------
-# Funções auxiliares
-# ----------------------------------------------------------
 def carregar_imagens_recfac(root_folder, size=(30, 30)):
     X_list, labels = [], []
     valid_ext = {'.png'}
@@ -56,9 +52,6 @@ def codificar_one_hot_bipolar(labels):
     return Y, c_to_idx, classes
 
 
-# ----------------------------------------------------------
-# Main
-# ----------------------------------------------------------
 if __name__ == "__main__":
     ROOT = os.path.join(parent_dir, "RecFac")
     IMG_SIZE = (30, 30)
@@ -107,7 +100,7 @@ if __name__ == "__main__":
         # Normalizar o X_teste com base no que foi obtido no treino
         X_teste_norm = 2 * (X_teste - min_treino) / denominador - 1
 
-        # FIM DA NORMALIZAÇÃO
+        # FIM NORMALIZAÇÃO
 
         models = []
         for c in range(n_classes):
@@ -128,11 +121,7 @@ if __name__ == "__main__":
         y_pred = idx_pred
         acuracia = np.mean(y_pred == y_true_test)
         accs.append(acuracia)
-        # print("--"*20)
-        # print(y_pred)
-        # print("--"*20)
-        # print(y_true_test)
-        # print("--"*20)
+
         resultados.append({
             "acc": acuracia,
             "models": models,
@@ -151,9 +140,6 @@ if __name__ == "__main__":
     print(f"\nMelhor rodada ({best_idx+1}) -> Acurácia: {accs[best_idx]*100:.2f}%")
     print(f"Pior rodada ({worst_idx+1}) -> Acurácia: {accs[worst_idx]*100:.2f}%")
 
-    # ----------------------------------------------------------
-    # MATRIZES 2×2 INDIVIDUAIS - MELHOR E PIOR
-    # ----------------------------------------------------------
 
     GREENS = ['#006045', '#009966', '#00d492', '#a4f4cf']
     REDS = ['#a50036', '#ec003f', '#ff637e', '#ffccd3']
@@ -189,24 +175,19 @@ if __name__ == "__main__":
 
         # print(f"Soma total ({titulo}): {soma_total} (deve ser 640)") 
 
-    # --- Plotar as 20 melhores (verde) e 20 piores (vermelho)
+    # Plotar as 20 melhores (verde) e 20 piores (vermelho)
     gerar_matrizes(best["Y_test"], best["Y_pred"], cmap_greens, "Melhor Rodada")
     gerar_matrizes(worst["Y_test"], worst["Y_pred"], cmap_reds, "Pior Rodada")
 
-    # ----------------------------------------------------------
-    # FUNÇÃO AUXILIAR PARA CURVAS DE APRENDIZADO
-    # ----------------------------------------------------------
-    import numpy as np
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from matplotlib.colors import ListedColormap
 import sys
 import os
-import cv2  # Import do OpenCV
-# Import necessário para One-Hot Encoding
+import cv2
 from sklearn.preprocessing import OneHotEncoder
 
-# --- Caminhos (Preservados) ---
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(script_dir, '..'))
 if parent_dir not in sys.path:
@@ -214,14 +195,9 @@ if parent_dir not in sys.path:
 
 from Avaliador import Avaliador
 from Matriz_Confusao import Matriz_Confusao
-# Import da MLP (Preservado)
 from neural_network import MultilayerPerceptron
 
 
-# ----------------------------------------------------------
-# Função auxiliar para carregar dados (OpenCV)
-# (Alteração 'size=(10, 10)' preservada)
-# ----------------------------------------------------------
 def carregar_imagens_recfac(root_folder, size=(10, 10)):
     """
     Carrega imagens da base RecFac usando OpenCV.
@@ -260,10 +236,6 @@ def carregar_imagens_recfac(root_folder, size=(10, 10)):
     y_labels = np.array(labels)
     return X_all, y_labels
 
-# ----------------------------------------------------------
-# CARREGAMENTO DOS DADOS (OpenCV - RecFac)
-# (Caminho 'ROOT_FOLDER' preservado)
-# ----------------------------------------------------------
 print("Carregando imagens da base RecFac...")
 ROOT_FOLDER = os.path.join(parent_dir, "RecFac") 
 
@@ -274,10 +246,6 @@ except RuntimeError as e:
     print(f"ERRO: Verifique se a pasta '{ROOT_FOLDER}' existe e contém subpastas com imagens .png.")
     sys.exit(1)
 
-# ----------------------------------------------------------
-# PREPARAÇÃO MULTI-CLASSE (20 Classes)
-# (Substitui o bloco de adaptação binária)
-# ----------------------------------------------------------
 
 unique_labels = np.unique(y_labels_all)
 n_classes = len(unique_labels)
@@ -295,26 +263,19 @@ label_to_int = {label: i for i, label in enumerate(unique_labels)}
 y_int = np.array([label_to_int[label] for label in y_labels_all])
 
 # 2. Converter inteiros para One-Hot Encoding
-# Ex: Classe 3 (de 20) -> [0, 0, 0, 1, 0, ..., 0]
 encoder = OneHotEncoder(sparse_output=False, categories='auto')
-# 'y' agora tem shape (N_amostras, 20)
 y = encoder.fit_transform(y_int.reshape(-1, 1))
 
-# 'X' são todas as amostras
 X = X_all
 
 print(f"Total de {X.shape[0]} amostras (vetores de {X.shape[1]} features) carregadas.")
 N, p = X.shape
 
-# ----------------------------------------------------------
 # SIMULAÇÃO DE MONTE CARLO
-# (Focado apenas em Acurácia)
-# ----------------------------------------------------------
 
 metricas_acuracia = []
-# Outras listas de métricas removidas
 resultados = []
-R = 1 # (Preservado)
+R = 1 
 
 print(f"\nIniciando simulação de Monte Carlo com {R} rodadas...")
 for r in range(R):
@@ -331,7 +292,7 @@ for r in range(R):
     X_teste = Xr[split_idx:, :] 
     y_teste = yr[split_idx:, :] # Shape (N_teste, 20)
     
-    # NORMALIZAÇÃO DOS DADOS [-1, 1] (Preservado)
+    # NORMALIZAÇÃO DOS DADOS [-1, 1]
     min_treino = X_treino.min(axis=0)
     max_treino = X_treino.max(axis=0)
     denominador = (max_treino - min_treino) + 1e-8
@@ -340,31 +301,19 @@ for r in range(R):
 
     # FIM DA NORMALIZAÇÃO
     
-    # Topologia da rede (Preservada)
-    # [Entrada (100), Oculta (30), Saída (20)]
+    # Topologia da rede
     layer_dims = [X_treino.shape[1], 30, 20] 
     
-    # y_treino.T tem shape (20, N_treino), que é o esperado pela MLP
     ps = MultilayerPerceptron(topology=layer_dims, X_train=X_treino_norm.T, Y_train=y_treino.T, max_epoch=100, learning_rate=0.01)
     ps.fit()
       
-    # y_pred terá shape (20, N_teste)
     y_pred = ps.predict(X_teste_norm.T)
     
-    # --- CÁLCULO DE ACURÁCIA MULTI-CLASSE ---
+    # CÁLCULO DE ACURÁCIA MULTI-CLASSE
     
-    # 1. Converter predições (softmax/logits) para a classe (índice) vencedora
-    # axis=0 pois o shape é (20, N_teste)
     y_pred_classes = np.argmax(y_pred, axis=0) 
-    
-    # 2. Converter y_teste (one-hot) de volta para classes (índices)
-    # axis=1 pois o shape é (N_teste, 20)
     y_true_classes = np.argmax(y_teste, axis=1)
-
-    # 3. Calcular acurácia
     acc = np.mean(y_true_classes == y_pred_classes)
-    
-    # 4. Salvar resultados
     metricas_acuracia.append(acc)
     
     resultados.append({
@@ -377,10 +326,7 @@ for r in range(R):
     if (r + 1) % 50 == 0 or (r + 1) == R:
         print(f"Rodada {r + 1}/{R} concluída.")
 
-# ----------------------------------------------------------
-# ----- PLOTAGEM (Acurácia, Matriz Confusão e Curvas) -----
-# (Bloco de plotagem totalmente substituído)
-# ----------------------------------------------------------
+#  PLOTAGEM
 
 # 1. Encontrar melhor e pior rodada (baseado na acurácia)
 if not metricas_acuracia:
@@ -398,14 +344,10 @@ pior = resultados[worst_idx]
 GREENS = ['#006045', '#009966', '#00d492', '#a4f4cf']
 REDS = ['#a50036', '#ec003f', '#ff637e', '#ffccd3']
 
-# ----------------------------------------------------------
-# A. PLOTAR MATRIZES DE CONFUSÃO (20x20)
-# ----------------------------------------------------------
+#PLOTAR MATRIZES DE CONFUSÃO (20x20)
 
-# Labels para os eixos (nomes das pastas)
 labels_plot = unique_labels 
 
-# Preparar dados
 y_true_melhor = melhor["y_true"]
 y_pred_melhor = melhor["y_pred"]
 mc_melhor = Matriz_Confusao.conf_matriz(y_true_melhor, y_pred_melhor)
@@ -436,19 +378,13 @@ ax_cm_pior.set_yticklabels(ax_cm_pior.get_yticklabels(), rotation=0)
 plt.tight_layout()
 plt.show()
 
-# ----------------------------------------------------------
-# B. PLOTAR CURVAS DE APRENDIZADO (Função fornecida)
-# ----------------------------------------------------------
+# PLOTAR CURVAS DE APRENDIZADO (Função fornecida)
 
-# Para fazer a ponte entre a ESTRUTURA DE DADOS do 'main' e a ESTRUTURA
-# ESPERADA pela função 'plotar_curva_aprendizado', criamos esta classe auxiliar.
 class DummyModel:
     def __init__(self, errors):
         self.errors_per_epoch = errors
 
-# ----------------------------------------------------------
 # FUNÇÃO AUXILIAR (Exatamente como fornecida)
-# ----------------------------------------------------------
 def plotar_curva_aprendizado(resultados_rodada, n_classes, titulo_grafico, cor_plot):
 
         all_errors = []
@@ -479,9 +415,6 @@ def plotar_curva_aprendizado(resultados_rodada, n_classes, titulo_grafico, cor_p
             print(f"Nenhum histórico de erro encontrado para: {titulo_grafico}.")
             return
 
-        # 'n_classes' aqui é usado para 'padded_errors', mas na verdade
-        # deveria ser o n_modelos (len(all_errors)).
-        # Vamos usar 'len(all_errors)' que é mais robusto.
         n_models_in_rodada = len(all_errors)
         if n_models_in_rodada == 0:
              print(f"Nenhum modelo encontrado para: {titulo_grafico}.")
@@ -494,17 +427,15 @@ def plotar_curva_aprendizado(resultados_rodada, n_classes, titulo_grafico, cor_p
             padded_errors[i, :len(history)] = history
             padded_errors[i, len(history):] = last_error 
     
-        # Calcular média e desvio padrão (com 1 modelo, std será 0)
         mean_errors = np.mean(padded_errors, axis=0)
         std_errors = np.std(padded_errors, axis=0)
     
         epochs = np.arange(1, max_len + 1)
     
-        # Plotar o gráfico
+        # Plotando
         plt.figure(figsize=(12, 7))
         plt.plot(epochs, mean_errors, color=cor_plot, lw=2, label='Erro Quadrático Médio (MSE) - Média')
         
-        # Plotar a banda de desvio padrão
         plt.fill_between(epochs, 
                          mean_errors - std_errors, 
                          mean_errors + std_errors, 
@@ -518,15 +449,13 @@ def plotar_curva_aprendizado(resultados_rodada, n_classes, titulo_grafico, cor_p
         plt.legend(fontsize=11)
         plt.grid(True, linestyle='--', alpha=0.6)
         
-        # Usar escala logarítmica no eixo Y é bom para ver a convergência
+        # Usar escala logarítmica no eixo Y é bom pra ver a convergência
         plt.yscale('log')
         
         plt.tight_layout()
         plt.show()
 
-# ----------------------------------------------------------
 # CHAMADAS PARA AS CURVAS DE APRENDIZADO
-# ----------------------------------------------------------
 
 # 1. Empacotar dados do "melhor" para a função
 best_for_plot = {
@@ -554,12 +483,8 @@ plotar_curva_aprendizado(
 )
 
 
-# ----------------------------------------------------------
-# --- Finalização (Apenas Acurácia) ---
-# ----------------------------------------------------------
 print("\nSimulação concluída.")
 print("Estatísticas gerais (todas as rodadas):")
 Avaliador.print_stat("Acurácia", metricas_acuracia)
-# Outras impressões removidas
 
-plt.show() # Garante que todos os plots abertos sejam exibidos
+plt.show()

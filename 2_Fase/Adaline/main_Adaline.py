@@ -6,7 +6,6 @@ from matplotlib.colors import ListedColormap
 import sys
 import os
 
-# --- Caminhos ---
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(script_dir, '..'))
 if parent_dir not in sys.path:
@@ -17,9 +16,6 @@ from Avaliador import Avaliador
 from Matriz_Confusao import Matriz_Confusao
 
 
-# ----------------------------------------------------------
-# Funções auxiliares
-# ----------------------------------------------------------
 def carregar_imagens_recfac(root_folder, size=(30, 30)):
     X_list, labels = [], []
     valid_ext = {'.png'}
@@ -56,9 +52,6 @@ def codificar_one_hot_bipolar(labels):
     return Y, c_to_idx, classes
 
 
-# ----------------------------------------------------------
-# Main
-# ----------------------------------------------------------
 if __name__ == "__main__":
     ROOT = os.path.join(parent_dir, "RecFac")
     IMG_SIZE = (30, 30)
@@ -105,7 +98,6 @@ if __name__ == "__main__":
         # x_norm = 2 * (x - min) / (max - min) - 1 ) 
         X_treino_norm = 2 * (X_treino - min_treino) / denominador - 1
         
-        # Normalizar o X_teste com base no que foi obtido no treino
         X_teste_norm = 2 * (X_teste - min_treino) / denominador - 1
 
         # FIM DA NORMALIZAÇÃO
@@ -149,9 +141,6 @@ if __name__ == "__main__":
     print(f"\nMelhor rodada ({best_idx+1}) -> Acurácia: {accs[best_idx]*100:.2f}%")
     print(f"Pior rodada ({worst_idx+1}) -> Acurácia: {accs[worst_idx]*100:.2f}%")
 
-    # ----------------------------------------------------------
-    # MATRIZES 2×2 INDIVIDUAIS - MELHOR E PIOR
-    # ----------------------------------------------------------
 
     GREENS = ['#006045', '#009966', '#00d492', '#a4f4cf']
     REDS = ['#a50036', '#ec003f', '#ff637e', '#ffccd3']
@@ -168,7 +157,6 @@ if __name__ == "__main__":
             y_pred_c = Y_pred[:, c]
 
             # Normaliza os valores da matriz pra índices 0–3
-            # Assim cada quadrado pega uma cor específica
             mc_indices = np.array([[0, 1],
                                    [2, 3]])
 
@@ -187,13 +175,9 @@ if __name__ == "__main__":
 
         #print(f"Soma total ({titulo}): {soma_total} (deve ser 640)") Qual o intuito ?
 
-    # --- Plotar as 20 melhores (verde) e 20 piores (vermelho)
     gerar_matrizes(best["Y_test"], best["Y_pred"], cmap_greens, "Melhor Rodada")
     gerar_matrizes(worst["Y_test"], worst["Y_pred"], cmap_reds, "Pior Rodada")
 
-    # ----------------------------------------------------------
-    # FUNÇÃO AUXILIAR PARA CURVAS DE APRENDIZADO
-    # ----------------------------------------------------------
     def plotar_curva_aprendizado(resultados_rodada, n_classes, titulo_grafico, cor_plot):
 
         all_errors = []
@@ -262,9 +246,6 @@ if __name__ == "__main__":
         plt.tight_layout()
         plt.show()
 
-    # ----------------------------------------------------------
-    # CURVAS DE APRENDIZADO - MELHOR E PIOR RODADA
-    # ----------------------------------------------------------
     
     # Plotar a curva da melhor rodada 
     plotar_curva_aprendizado(

@@ -120,7 +120,7 @@ for r in range(R):
     if (r + 1) % 50 == 0:
         print(f"Rodada {r + 1}/{R} concluída.")
         
-# ----- MATRIZ DE CONFUSÃO -----
+# MATRIZ DE CONFUSÃO
 metricas = ["acc", "sens", "spec", "prec", "f1"]
 labels_plot = ['Classe 1', 'Classe -1']
 
@@ -141,7 +141,6 @@ for metrica in metricas:
     mc_pior = Matriz_Confusao.conf_matriz(y_true_pior, y_pred_pior)
     #mc_pior = Matriz_Confusao.conf_matriz(pior["y_true"], pior["y_pred"])
     
-    # 3. Criar a figura com 2 subplots (1 linha, 2 colunas)
     fig_cm, (ax_cm_melhor, ax_cm_pior) = plt.subplots(1, 2, figsize=(14, 6))
     
     GREENS = ['#006045', '#009966', '#00d492', '#a4f4cf']
@@ -176,36 +175,32 @@ for metrica in metricas:
     ax_cm_pior.set_yticklabels(ax_cm_pior.get_yticklabels(), rotation=0)
     
     plt.tight_layout()
-    plt.show() # Mostra a figura das matrizes
+    plt.show()
+    # CURVA DE APRENDIZADO
     
-    # ----- CURVA DE APRENDIZADO -----
-    
-    # Garante que 'errors' não é None
     errors_melhor = melhor["errors"] if melhor["errors"] is not None else [0]
     errors_pior = pior["errors"] if pior["errors"] is not None else [0]
-    # --- CURVAS DE APRENDIZADO (Melhor x Pior) ---
+    # melhor x pior
     fig, axes = plt.subplots(1, 2, figsize=(12, 4))  # 1 linha, 2 colunas
 
-    # --- Subgráfico 1: Melhor ---
+    # Melhor
     axes[0].plot(errors_melhor, color=GREENS[1])
     axes[0].set_title(f"Melhor {metrica.upper()}")
     axes[0].set_xlabel("Época")
     axes[0].set_ylabel("Erros por época")
     axes[0].grid(True)
 
-    # --- Subgráfico 2: Pior ---
+    # Pior
     axes[1].plot(errors_pior, color=REDS[1])
     axes[1].set_title(f"Pior {metrica.upper()}")
     axes[1].set_xlabel("Época")
     axes[1].set_ylabel("Erros por época")
     axes[1].grid(True)
 
-    # Ajustes finais
     plt.suptitle(f"Curvas de Aprendizado - {metrica.upper()}", fontsize=14, fontweight='bold')
-    plt.tight_layout(rect=[0, 0, 1, 0.95])  # Deixa espaço para o título
+    plt.tight_layout(rect=[0, 0, 1, 0.95]) 
     plt.show()
 
-# --- Finalização (sem alterações) ---
 plt.show()
 plt.show(block=True) 
 print("\nSimulação concluída.")

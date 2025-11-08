@@ -6,7 +6,6 @@ import sys
 import os
 import cv2  
 
-# --- Caminhos ---
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(script_dir, '..'))
 if parent_dir not in sys.path:
@@ -14,13 +13,11 @@ if parent_dir not in sys.path:
 
 from Avaliador_MLP import Avaliador
 from Matriz_Confusao_MLP import Matriz_Confusao
-
 from neural_network import MultilayerPerceptron
 
 
 # ----------------------------------------------------------
 # Função auxiliar para carregar dados (OpenCV)
-# (Sem alterações)
 # ----------------------------------------------------------
 def carregar_imagens_recfac(root_folder, size=(30, 30)):
     """
@@ -69,7 +66,6 @@ def carregar_imagens_recfac(root_folder, size=(30, 30)):
 # CARREGAMENTO DOS DADOS (OpenCV - RecFac)
 # ----------------------------------------------------------
 print("Carregando imagens da base RecFac...")
-# O caminho 'RecFac/' funciona pois está no mesmo nível do main.py
 ROOT_FOLDER = os.path.join(parent_dir, "RecFac") 
 
 try:
@@ -78,10 +74,6 @@ except RuntimeError as e:
     print(e)
     print(f"ERRO: Verifique se a pasta '{ROOT_FOLDER}' existe e contém subpastas com imagens .png.")
     sys.exit(1)
-
-# ----------------------------------------------------------
-# ADAPTAÇÃO PARA CLASSIFICAÇÃO MULTICLASSE
-# ----------------------------------------------------------
 unique_labels = np.unique(y_labels_all)
 n_classes = len(unique_labels)
 
@@ -106,11 +98,6 @@ print(f"Total de {X.shape[0]} amostras (vetores de {X.shape[1]} features) carreg
 
 N, p = X.shape
 # O plot inicial (scatter 2D) não se aplica a dados de imagem (alta dimensão)
-
-# ----------------------------------------------------------
-# SIMULAÇÃO DE MONTE CARLO
-# (Sem alterações)
-# ----------------------------------------------------------
 
 metricas_acuracia = []
 resultados = []
@@ -160,34 +147,23 @@ for r in range(R):
     y_pred_indices = np.argmax(y_pred_scores, axis=1)
     y_teste_indices = np.argmax(y_teste, axis=1)
 
-    # ATENÇÃO: Seu 'Avaliador' provavelmente também está binário.
-    # As métricas (acc, sens, etc.) aqui podem estar erradas para multiclasse.
-    # O código abaixo é mantido para não quebrar, mas foca na matriz de confusão.
     y_pred_bin = np.where(y_pred_scores >= 0, 1, -1)
-    acc = Avaliador.calcular_metricas(y_teste_indices, y_pred_indices) # Isso ainda compara (one-hot) com (binário)
+    acc = Avaliador.calcular_metricas(y_teste_indices, y_pred_indices)
 
-    metricas_acuracia.append(acc) # TODO: Idealmente, 'acc' deveria ser recalculada
+    metricas_acuracia.append(acc)
    
     
     resultados.append({
         "acc": acc,
-        # --- !! MUDANÇA CRÍTICA !! ---
-        # Salvar os ÍNDICES, não os vetores/scores achatados
-        "y_true": y_teste_indices, # AGORA é (n_samples,)
-        "y_pred": y_pred_indices, # AGORA é (n_samples,)
-        # --- !! FIM DA MUDANÇA !! ---
+        "y_true": y_teste_indices,
+        "y_pred": y_pred_indices,
         "errors": ps.errors_per_epoch
      })
     
     if (r + 1) % 50 == 0 or (r + 1) == R:
         print(f"Rodada {r + 1}/{R} concluída.")
 
-# ----------------------------------------------------------
-# ----- PLOTAGEM (Apenas Acurácia) -----
-# (Sem alterações na lógica de plotagem)
-# ----------------------------------------------------------
-
-metricas = ["acc"] # <-- Focado apenas na Acurácia, conforme pedido
+metricas = ["acc"]
 labels_plot = [f'{i} ({label})' for i, label in enumerate(unique_labels)]
 
 
@@ -273,9 +249,6 @@ for metrica in metricas:
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
 
-# ----------------------------------------------------------
-# --- Finalização (Imprime estatísticas de todas as métricas) ---
-# ----------------------------------------------------------
 print("\nSimulação concluída.")
 print("Estatísticas gerais (todas as rodadas):")
 Avaliador.print_stat("Acurácia", metricas_acuracia)
