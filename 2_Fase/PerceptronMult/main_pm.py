@@ -114,7 +114,7 @@ N, p = X.shape
 
 metricas_acuracia = []
 resultados = []
-R = 10 #TODO ajustar
+R = 1 #TODO ajustar
 
 print(f"\nIniciando simulação de Monte Carlo com {R} rodadas...")
 for r in range(R):
@@ -144,7 +144,7 @@ for r in range(R):
     
     ps = MultilayerPerceptron(topology=layer_dims, X_train=X_treino_norm.T, Y_train=y_treino.T, max_epoch=100, learning_rate=0.01)
     ps.fit()
-      
+    
     y_pred_scores = ps.predict(X_teste_norm.T) # Saída é (n_classes, n_samples)
 
     y_pred_scores = np.squeeze(y_pred_scores)  # remove dimensões extras
@@ -158,14 +158,13 @@ for r in range(R):
 
 
     y_pred_indices = np.argmax(y_pred_scores, axis=1)
-
     y_teste_indices = np.argmax(y_teste, axis=1)
 
     # ATENÇÃO: Seu 'Avaliador' provavelmente também está binário.
     # As métricas (acc, sens, etc.) aqui podem estar erradas para multiclasse.
     # O código abaixo é mantido para não quebrar, mas foca na matriz de confusão.
     y_pred_bin = np.where(y_pred_scores >= 0, 1, -1)
-    acc = Avaliador.calcular_metricas(y_teste, y_pred_bin) # Isso ainda compara (one-hot) com (binário)
+    acc = Avaliador.calcular_metricas(y_teste_indices, y_pred_indices) # Isso ainda compara (one-hot) com (binário)
 
     metricas_acuracia.append(acc) # TODO: Idealmente, 'acc' deveria ser recalculada
    
