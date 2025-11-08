@@ -13,38 +13,17 @@ class Avaliador:
     
     @staticmethod 
     def calcular_metricas(y_true, y_pred): 
-        
-        y_true = y_true.flatten()
-        y_pred = y_pred.flatten()
-        
-    
-        TP = np.sum((y_true == 1) & (y_pred == 1))
-        TN = np.sum((y_true == -1) & (y_pred == -1))
-        FP = np.sum((y_true == -1) & (y_pred == 1))
-        FN = np.sum((y_true == 1) & (y_pred == -1))
-        
-        total = TP + TN + FP + FN
-        
+        y_true = np.array(y_true)
+        y_pred = np.array(y_pred)
+
+        # Número total de amostras
+        total = len(y_true)
+        # Número de acertos
+        acertos = np.sum(y_true == y_pred)
         # Acurácia
-        acuracia = (TP + TN) / total if total > 0 else 0
+        acc = acertos / total if total > 0 else 0.0
         
-        # Sensibilidade (Recall)
-        denominador_sens = (TP + FN)
-        sensibilidade = TP / denominador_sens if denominador_sens > 0 else 0
-        
-        # Especificidade
-        denominador_espec = (TN + FP)
-        especificidade = TN / denominador_espec if denominador_espec > 0 else 0
-        
-        # Precisão
-        denominador_prec = (TP + FP)
-        precisao = TP / denominador_prec if denominador_prec > 0 else 0 
-        
-        # F1-Score
-        denominador_f1 = (precisao + sensibilidade)
-        f1_score = 2 * (precisao * sensibilidade) / denominador_f1 if denominador_f1 > 0 else 0
-        
-        return acuracia
+        return acc
     
     @staticmethod 
     def get_pior(metric_name,resultados):
